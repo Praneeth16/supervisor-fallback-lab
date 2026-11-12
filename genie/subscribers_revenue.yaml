@@ -1,0 +1,174 @@
+# Curated Genie Agent 1. Placeholders: {subscriber}, {billing}, {rights} expand to the schema names,
+# {today} to the lab's as-of date (lab.yaml: data.as_of).
+key: subscribers_revenue
+display_name: "Hoshi Stream: Subscribers and Revenue"
+description: >-
+  Subscribers, plans, sign-ups, churn, offers, invoices, payments and refunds for Hoshi Stream.
+  Use it for questions about how many people subscribe, what they pay, and why they leave.
+
+tables:
+  - subscriber.subscriber
+  - subscriber.subscription_plan
+  - subscriber.subscription
+  - subscriber.churn_event
+  - subscriber.offer
+  - subscriber.offer_redemption
+  - billing.invoice
+  - billing.payment
+  - billing.refund
+  - rights.territory
+
+value_columns:
+  subscriber.subscriber: [account_status, service_tier, country_code, registration_source, billing_cycle]
+  subscriber.subscription_plan: [plan_name, plan_code, plan_type, service_tier]
+  subscriber.subscription: [subscription_status, subscription_type, acquisition_channel]
+  subscriber.churn_event: [churn_type, cancellation_reason_code]
+  subscriber.offer: [offer_type]
+  subscriber.offer_redemption: [redemption_status, redemption_channel]
+  billing.invoice: [invoice_status]
+  billing.payment: [payment_status, method_type, failure_reason]
+  billing.refund: [refund_status, refund_type, reason_code]
+  rights.territory: [territory_group, name, iso_alpha_2_code]
+
+instructions: |
+  ## Purpose
+  Answer questions about Hoshi Stream subscribers and subscription revenue.
+  ## Dates
+  The data runs through 2026-11-09. Treat 2026-11-10 as today for relative dates such as "last month" or "this year". The current month is partial.
+  ## Definitions
+  - Paying subscriber: a subscription row with subscription_status = 'Active' on a plan with plan_type = 'Paid'. Count distinct subscriber_id.
+  - Sign-up: the earliest activation_date of a subscriber. Do not use registration_timestamp.
+  - Churn: a row in churn_event. Superseded subscriptions are plan changes, not churn. For paid churn join to the plan and keep plan_type = 'Paid'.
+  - Region: territory_group from hoshi_rights.territory joined on subscriber.territory_id (NA, LATAM, EMEA, APAC).
+  - Revenue: sum invoices by invoice_date. Revenue without tax is subtotal_amount - discount_amount. Collected revenue is amount_paid.
+  - MRR: base_rate_amount of active paid subscriptions, with annual plans divided by 12.
+  - Payment failure rate: failed payments divided by all payments.
+  - Refunds: count refund_status = 'Processed' by processing_date.
+  - Recently or lately: the last six months. Name the main driver over that period, then say if the latest month differs.
+  - Trends: compare full months only. Call a change of under 5 percent flat.
+  ## Limits
+  This agent has no content, viewing, licensing or advertising data. Say so when asked.
+
+joins:
+  - {left: subscriber.subscription, right: subscriber.subscriber, keys: [subscriber_id, subscriber_id]}
+  - {left: subscriber.subscription, right: subscriber.subscription_plan, keys: [subscription_plan_id, subscription_plan_id]}
+  - {left: subscriber.subscriber, right: rights.territory, keys: [territory_id, territory_id]}
+  - {left: subscriber.churn_event, right: subscriber.subscription, keys: [subscription_id, subscription_id], type: ONE_TO_ONE}
+  - {left: subscriber.churn_event, right: subscriber.subscriber, keys: [subscriber_id, subscriber_id]}
+  - {left: subscriber.offer_redemption, right: subscriber.offer, keys: [offer_id, offer_id]}
+  - {left: subscriber.offer_redemption, right: subscriber.subscriber, keys: [subscriber_id, subscriber_id]}
+  - {left: billing.invoice, right: subscriber.subscriber, keys: [subscriber_id, subscriber_id]}
+  - {left: billing.invoice, right: subscriber.subscription_plan, keys: [subscription_plan_id, subscription_plan_id]}
+  - {left: billing.payment, right: billing.invoice, keys: [invoice_id, invoice_id], type: ONE_TO_ONE}
+  - {left: billing.refund, right: billing.invoice, keys: [invoice_id, invoice_id]}
+
+filters:
+  - name: Paid plans only
+    sql: "subscription_plan.plan_type = 'Paid'"
+    synonyms: [paying, paid subscribers]
+  - name: Current subscriptions
+    sql: "subscription.subscription_status = 'Active'"
+    synonyms: [active, current]
+  - name: Failed payments
+    sql: "payment.payment_status = 'Failed'"
+
+measures:
+  - name: Paying subscribers
+    sql: "COUNT(DISTINCT CASE WHEN subscription.subscription_status = 'Active' AND subscription_plan.plan_type = 'Paid' THEN subscription.subscriber_id END)"
+    synonyms: [paid subs, active paying subscribers]
+  - name: Monthly recurring revenue
+    sql: "SUM(CASE WHEN subscription.subscription_status = 'Active' AND subscription_plan.plan_type = 'Paid' THEN CASE WHEN subscription.subscription_type = 'Annual' THEN subscription.base_rate_amount / 12 ELSE subscription.base_rate_amount END END)"
+    synonyms: [MRR]
+  - name: Revenue without tax
+    sql: "SUM(invoice.subtotal_amount - invoice.discount_amount)"
+    synonyms: [net revenue, billed revenue]
+  - name: Collected revenue
+    sql: "SUM(invoice.amount_paid)"
+    synonyms: [cash collected]
+  - name: Payment failure rate
+    sql: "SUM(CASE WHEN payment.payment_status = 'Failed' THEN 1 ELSE 0 END) / COUNT(*)"
+    synonyms: [failure rate, decline rate]
+
+# The examples, sample questions and built-in benchmark below must not ask for the same thing as
+# any question in eval/benchmark*.yaml. scripts/check_overlap.py fails when one does. The agent
+# still learns the business definitions from the instructions, joins, filters and measures above.
+sample_questions:
+  - Which sign-up channels bring the most subscriptions?
+  - How long do cancelled subscribers stay with us, by plan?
+  - How many invoices are open, overdue and paid this year?
+  - How often are offers redeemed through each channel?
+
+examples:
+  - question: How many accounts are active, by the channel they registered through?
+    sql: |
+      SELECT registration_source, COUNT(*) AS active_accounts
+      FROM {subscriber}.subscriber
+      WHERE account_status = 'Active'
+      GROUP BY registration_source
+      ORDER BY active_accounts DESC
+  - question: What is the average tenure in months of cancelled paid subscriptions, by plan?
+    sql: |
+      SELECT p.plan_name, ROUND(AVG(c.subscription_tenure_months), 1) AS average_tenure_months, COUNT(*) AS cancellations
+      FROM {subscriber}.churn_event AS c
+      JOIN {subscriber}.subscription AS s ON s.subscription_id = c.subscription_id
+      JOIN {subscriber}.subscription_plan AS p ON p.subscription_plan_id = s.subscription_plan_id
+      WHERE p.plan_type = 'Paid'
+      GROUP BY p.plan_name
+      ORDER BY average_tenure_months DESC
+  - question: How many offer redemptions were applied each month this year, by channel?
+    sql: |
+      SELECT DATE_TRUNC('MONTH', redemption_timestamp) AS month, redemption_channel, COUNT(*) AS redemptions
+      FROM {subscriber}.offer_redemption
+      WHERE redemption_status = 'Applied' AND redemption_timestamp >= DATE_TRUNC('YEAR', {today})
+      GROUP BY 1, 2
+      ORDER BY 1, redemptions DESC
+  - question: How many invoices were issued this year in each status, and what do they add up to?
+    sql: |
+      SELECT invoice_status, COUNT(*) AS invoices, ROUND(SUM(total_amount_due), 2) AS amount_with_tax
+      FROM {billing}.invoice
+      WHERE invoice_date >= DATE_TRUNC('YEAR', {today})
+      GROUP BY invoice_status
+  - question: What share of cancellations in each quarter was involuntary?
+    sql: |
+      SELECT DATE_TRUNC('QUARTER', churn_timestamp) AS quarter,
+             ROUND(SUM(CASE WHEN churn_type = 'Involuntary' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) AS involuntary_percent
+      FROM {subscriber}.churn_event
+      GROUP BY 1
+      ORDER BY 1
+
+benchmarks:
+  - question: How many active accounts registered through a smart TV?
+    sql: |
+      SELECT COUNT(*) AS accounts FROM {subscriber}.subscriber
+      WHERE account_status = 'Active' AND registration_source = 'Smart TV'
+  - question: How many plan changes were there in 2025?
+    sql: |
+      SELECT COUNT(*) AS plan_changes FROM {subscriber}.subscription
+      WHERE subscription_status = 'Superseded' AND termination_date >= DATE'2025-01-01' AND termination_date < DATE'2026-01-01'
+  - question: How many refund requests have not been processed yet?
+    sql: |
+      SELECT COUNT(*) AS requested_refunds FROM {billing}.refund WHERE refund_status = 'Requested'
+  - question: How much tax did we bill in 2025?
+    sql: |
+      SELECT ROUND(SUM(tax_amount), 2) AS tax_billed FROM {billing}.invoice
+      WHERE invoice_date >= DATE'2025-01-01' AND invoice_date < DATE'2026-01-01'
+  - question: How many payments were made with a gift card in 2025?
+    sql: |
+      SELECT COUNT(*) AS payments FROM {billing}.payment
+      WHERE method_type = 'Gift Card' AND payment_date >= DATE'2025-01-01' AND payment_date < DATE'2026-01-01'
+  - question: How many offers do we have of each type?
+    sql: |
+      SELECT offer_type, COUNT(*) AS offers FROM {subscriber}.offer GROUP BY offer_type ORDER BY offers DESC
+  - question: Which acquisition channel accounts for the most subscriptions?
+    sql: |
+      SELECT acquisition_channel, COUNT(*) AS subscriptions FROM {subscriber}.subscription
+      GROUP BY acquisition_channel ORDER BY subscriptions DESC LIMIT 1
+  - question: How many subscribers prefer Spanish?
+    sql: |
+      SELECT COUNT(*) AS subscribers FROM {subscriber}.subscriber WHERE preferred_language = 'Spanish'
+  - question: How many refunds were full and how many were partial?
+    sql: |
+      SELECT refund_type, COUNT(*) AS refunds FROM {billing}.refund GROUP BY refund_type
+  - question: What is the average number of days since last viewing when people cancel?
+    sql: |
+      SELECT ROUND(AVG(days_since_last_viewing), 1) AS average_days FROM {subscriber}.churn_event

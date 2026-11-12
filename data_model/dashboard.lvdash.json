@@ -1,0 +1,466 @@
+{
+  "datasets": [
+    {
+      "name": "ds_expiring_licensors",
+      "displayName": "Agreements expiring in 90 days by licensor",
+      "queryLines": [
+        "SELECT h.rights_holder_name AS licensor, COUNT(*) AS agreements_expiring, MIN(a.expiry_date) AS first_expiry, SUM(a.total_license_fee) AS fee_expiring ",
+        "FROM {catalog}.{prefix}rights.license_agreement a ",
+        "JOIN {catalog}.{prefix}rights.holder h ON a.primary_license_holder_id = h.holder_id ",
+        "WHERE a.agreement_status = 'Active' AND a.expiry_date BETWEEN current_date() AND date_add(current_date(), 90) ",
+        "GROUP BY h.rights_holder_name ",
+        "ORDER BY agreements_expiring DESC, licensor"
+      ]
+    },
+    {
+      "name": "ds_licence_fees_top10",
+      "displayName": "Active licence fees by licensor, top 10",
+      "queryLines": [
+        "SELECT h.rights_holder_name AS licensor, COUNT(*) AS active_agreements, SUM(a.total_license_fee) AS total_license_fee ",
+        "FROM {catalog}.{prefix}rights.license_agreement a ",
+        "JOIN {catalog}.{prefix}rights.holder h ON a.primary_license_holder_id = h.holder_id ",
+        "WHERE a.agreement_status = 'Active' ",
+        "GROUP BY h.rights_holder_name ",
+        "ORDER BY total_license_fee DESC ",
+        "LIMIT 10"
+      ]
+    },
+    {
+      "name": "ds_overdue_royalties_top10",
+      "displayName": "Overdue royalty statements by licensor, top 10",
+      "queryLines": [
+        "SELECT h.rights_holder_name AS licensor, COUNT(*) AS overdue_statements, SUM(r.net_royalty_amount) AS overdue_net_royalty ",
+        "FROM {catalog}.{prefix}rights.royalty_statement r ",
+        "JOIN {catalog}.{prefix}rights.holder h ON r.holder_id = h.holder_id ",
+        "WHERE r.statement_status = 'Overdue' ",
+        "GROUP BY h.rights_holder_name ",
+        "ORDER BY overdue_net_royalty DESC ",
+        "LIMIT 10"
+      ]
+    },
+    {
+      "name": "ds_content_windows",
+      "displayName": "Active content windows by territory group and window type",
+      "queryLines": [
+        "SELECT t.territory_group, c.window_type, COUNT(*) AS active_windows ",
+        "FROM {catalog}.{prefix}rights.content_window c ",
+        "JOIN {catalog}.{prefix}rights.territory t ON c.territory_id = t.territory_id ",
+        "WHERE c.availability_status = 'Active' ",
+        "GROUP BY t.territory_group, c.window_type ",
+        "ORDER BY t.territory_group, c.window_type"
+      ]
+    },
+    {
+      "name": "ds_ad_delivery_by_advertiser",
+      "displayName": "Ordered vs delivered impressions by advertiser, top 10",
+      "queryLines": [
+        "WITH ordered AS (SELECT advertiser_id, SUM(target_impressions) AS ordered_impressions FROM {catalog}.{prefix}sales.campaign GROUP BY advertiser_id), ",
+        "delivered AS (SELECT c.advertiser_id, SUM(d.total_impressions_served) AS delivered_impressions FROM {catalog}.{prefix}sales.impression_delivery d JOIN {catalog}.{prefix}sales.campaign c ON d.campaign_id = c.campaign_id GROUP BY c.advertiser_id) ",
+        "SELECT a.trade_name AS advertiser, o.ordered_impressions, dl.delivered_impressions, ROUND(dl.delivered_impressions / o.ordered_impressions, 3) AS delivery_ratio ",
+        "FROM delivered dl ",
+        "JOIN ordered o ON dl.advertiser_id = o.advertiser_id ",
+        "JOIN {catalog}.{prefix}sales.advertiser a ON a.advertiser_id = dl.advertiser_id ",
+        "ORDER BY delivered_impressions DESC ",
+        "LIMIT 10"
+      ]
+    },
+    {
+      "name": "ds_cpm_by_campaign_type",
+      "displayName": "Realised CPM by campaign type",
+      "queryLines": [
+        "SELECT c.campaign_type, SUM(d.revenue_amount) * 1000 / SUM(d.total_impressions_served) AS realised_cpm, SUM(d.total_impressions_served) AS delivered_impressions ",
+        "FROM {catalog}.{prefix}sales.impression_delivery d ",
+        "JOIN {catalog}.{prefix}sales.campaign c ON d.campaign_id = c.campaign_id ",
+        "GROUP BY c.campaign_type ",
+        "ORDER BY realised_cpm DESC"
+      ]
+    },
+    {
+      "name": "ds_ad_revenue_monthly",
+      "displayName": "Ad revenue by month, complete months",
+      "queryLines": [
+        "SELECT DATE_TRUNC('MONTH', d.delivery_date) AS month, SUM(d.revenue_amount) AS ad_revenue ",
+        "FROM {catalog}.{prefix}sales.impression_delivery d ",
+        "WHERE d.delivery_date < DATE_TRUNC('MONTH', current_date()) ",
+        "GROUP BY DATE_TRUNC('MONTH', d.delivery_date) ",
+        "ORDER BY month"
+      ]
+    },
+    {
+      "name": "ds_mg_by_deal_type",
+      "displayName": "Minimum guarantees recouped vs outstanding by deal type",
+      "queryLines": [
+        "SELECT d.deal_type, 'Recouped' AS balance, SUM(mg.recouped_to_date_amount) AS amount ",
+        "FROM {catalog}.{prefix}partner.minimum_guarantee mg ",
+        "JOIN {catalog}.{prefix}partner.acquisition_deal d ON mg.acquisition_deal_id = d.acquisition_deal_id ",
+        "GROUP BY d.deal_type ",
+        "UNION ALL ",
+        "SELECT d.deal_type, 'Outstanding' AS balance, SUM(mg.outstanding_balance_amount) AS amount ",
+        "FROM {catalog}.{prefix}partner.minimum_guarantee mg ",
+        "JOIN {catalog}.{prefix}partner.acquisition_deal d ON mg.acquisition_deal_id = d.acquisition_deal_id ",
+        "GROUP BY d.deal_type ",
+        "ORDER BY 1, 2"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "licensing",
+      "displayName": "Licensing",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "licensing-header",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Licensing and royalties\n",
+                "\n",
+                "Agreements expiring soon, licence fees, overdue royalty statements and active content windows."
+              ]
+            }
+          },
+          "position": {"x": 0, "y": 0, "width": 12, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "agreements-expiring-90d",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_expiring_licensors",
+                  "fields": [{"name": "sum(agreements_expiring)", "expression": "SUM(`agreements_expiring`)"}],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {"fieldName": "sum(agreements_expiring)", "displayName": "Agreements expiring"}
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Agreements expiring in next 90 days",
+                "showDescription": true,
+                "description": "Active agreements with an expiry date from today to 90 days ahead"
+              }
+            }
+          },
+          "position": {"x": 0, "y": 2, "width": 4, "height": 8}
+        },
+        {
+          "widget": {
+            "name": "expiring-by-licensor",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_expiring_licensors",
+                  "fields": [
+                    {"name": "licensor", "expression": "`licensor`"},
+                    {"name": "agreements_expiring", "expression": "`agreements_expiring`"},
+                    {"name": "first_expiry", "expression": "`first_expiry`"},
+                    {"name": "fee_expiring", "expression": "`fee_expiring`"}
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {"fieldName": "licensor", "displayName": "Licensor"},
+                  {"fieldName": "agreements_expiring", "displayName": "Agreements expiring"},
+                  {"fieldName": "first_expiry", "displayName": "First expiry"},
+                  {
+                    "fieldName": "fee_expiring",
+                    "displayName": "Licence fees expiring (USD)",
+                    "format": {"type": "number-currency", "currencyCode": "USD", "abbreviation": "compact", "decimalPlaces": {"type": "max", "places": 2}}
+                  }
+                ]
+              },
+              "frame": {"showTitle": true, "title": "Expiring agreements by licensor (next 90 days)"}
+            }
+          },
+          "position": {"x": 4, "y": 2, "width": 8, "height": 8}
+        },
+        {
+          "widget": {
+            "name": "licence-fees-top10",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_licence_fees_top10",
+                  "fields": [
+                    {"name": "licensor", "expression": "`licensor`"},
+                    {"name": "total_license_fee", "expression": "`total_license_fee`"}
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {"fieldName": "licensor", "scale": {"type": "categorical"}, "displayName": "Licensor"},
+                "y": {
+                  "fieldName": "total_license_fee",
+                  "scale": {"type": "quantitative"},
+                  "displayName": "Licence fees (USD)",
+                  "format": {"type": "number-currency", "currencyCode": "USD", "abbreviation": "compact", "decimalPlaces": {"type": "max", "places": 2}}
+                }
+              },
+              "frame": {"showTitle": true, "title": "Active licence fees by licensor (top 10)"}
+            }
+          },
+          "position": {"x": 0, "y": 10, "width": 6, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "overdue-royalties-top10",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_overdue_royalties_top10",
+                  "fields": [
+                    {"name": "licensor", "expression": "`licensor`"},
+                    {"name": "overdue_net_royalty", "expression": "`overdue_net_royalty`"}
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {"fieldName": "licensor", "scale": {"type": "categorical"}, "displayName": "Licensor"},
+                "y": {
+                  "fieldName": "overdue_net_royalty",
+                  "scale": {"type": "quantitative"},
+                  "displayName": "Overdue net royalty (USD)",
+                  "format": {"type": "number-currency", "currencyCode": "USD", "abbreviation": "compact", "decimalPlaces": {"type": "max", "places": 2}}
+                }
+              },
+              "frame": {"showTitle": true, "title": "Overdue royalty statements by licensor (top 10, USD)"}
+            }
+          },
+          "position": {"x": 6, "y": 10, "width": 6, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "active-windows-by-territory",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_content_windows",
+                  "fields": [
+                    {"name": "territory_group", "expression": "`territory_group`"},
+                    {"name": "window_type", "expression": "`window_type`"},
+                    {"name": "active_windows", "expression": "`active_windows`"}
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {"fieldName": "territory_group", "scale": {"type": "categorical"}, "displayName": "Territory group"},
+                "y": {"fieldName": "active_windows", "scale": {"type": "quantitative"}, "displayName": "Active windows"},
+                "color": {"fieldName": "window_type", "scale": {"type": "categorical"}, "displayName": "Window type"}
+              },
+              "frame": {"showTitle": true, "title": "Active content windows by territory group and window type"}
+            }
+          },
+          "position": {"x": 0, "y": 16, "width": 12, "height": 6}
+        }
+      ]
+    },
+    {
+      "name": "ad_sales",
+      "displayName": "Ad sales",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "ad-sales-header",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Ad sales\n",
+                "\n",
+                "Free-tier ad delivery against campaign targets, realised CPM, monthly ad revenue and minimum guarantee recoupment."
+              ]
+            }
+          },
+          "position": {"x": 0, "y": 0, "width": 12, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "ordered-vs-delivered",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_ad_delivery_by_advertiser",
+                  "fields": [
+                    {"name": "advertiser", "expression": "`advertiser`"},
+                    {"name": "ordered_impressions", "expression": "`ordered_impressions`"},
+                    {"name": "delivered_impressions", "expression": "`delivered_impressions`"},
+                    {"name": "delivery_ratio", "expression": "`delivery_ratio`"}
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {"fieldName": "advertiser", "displayName": "Advertiser"},
+                  {"fieldName": "ordered_impressions", "displayName": "Ordered impressions", "format": {"type": "number"}},
+                  {"fieldName": "delivered_impressions", "displayName": "Delivered impressions", "format": {"type": "number"}},
+                  {"fieldName": "delivery_ratio", "displayName": "Delivery ratio", "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 1}}}
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Ordered vs delivered impressions by advertiser (top 10 by delivery)",
+                "showDescription": true,
+                "description": "Ordered = campaign target impressions. Delivered = impressions served. Ratio above 100% means over-delivery."
+              }
+            }
+          },
+          "position": {"x": 0, "y": 2, "width": 12, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "realised-cpm-by-campaign-type",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_cpm_by_campaign_type",
+                  "fields": [
+                    {"name": "campaign_type", "expression": "`campaign_type`"},
+                    {"name": "realised_cpm", "expression": "`realised_cpm`"}
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {"fieldName": "campaign_type", "scale": {"type": "categorical"}, "displayName": "Campaign type"},
+                "y": {
+                  "fieldName": "realised_cpm",
+                  "scale": {"type": "quantitative"},
+                  "displayName": "Realised CPM (USD)",
+                  "format": {"type": "number-currency", "currencyCode": "USD", "decimalPlaces": {"type": "exact", "places": 2}}
+                }
+              },
+              "frame": {"showTitle": true, "title": "Realised CPM by campaign type"}
+            }
+          },
+          "position": {"x": 0, "y": 8, "width": 6, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "ad-revenue-by-month",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_ad_revenue_monthly",
+                  "fields": [
+                    {"name": "month", "expression": "`month`"},
+                    {"name": "ad_revenue", "expression": "`ad_revenue`"}
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {"fieldName": "month", "scale": {"type": "temporal"}, "displayName": "Month"},
+                "y": {
+                  "fieldName": "ad_revenue",
+                  "scale": {"type": "quantitative"},
+                  "displayName": "Ad revenue (USD)",
+                  "format": {"type": "number-currency", "currencyCode": "USD", "decimalPlaces": {"type": "exact", "places": 2}}
+                }
+              },
+              "frame": {"showTitle": true, "title": "Ad revenue by month (complete months, USD)"}
+            }
+          },
+          "position": {"x": 6, "y": 8, "width": 6, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "mg-recouped-vs-outstanding",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_mg_by_deal_type",
+                  "fields": [
+                    {"name": "deal_type", "expression": "`deal_type`"},
+                    {"name": "balance", "expression": "`balance`"},
+                    {"name": "amount", "expression": "`amount`"}
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {"fieldName": "deal_type", "scale": {"type": "categorical"}, "displayName": "Deal type"},
+                "y": {
+                  "fieldName": "amount",
+                  "scale": {"type": "quantitative"},
+                  "displayName": "Minimum guarantee (USD)",
+                  "format": {"type": "number-currency", "currencyCode": "USD", "abbreviation": "compact", "decimalPlaces": {"type": "max", "places": 2}}
+                },
+                "color": {"fieldName": "balance", "scale": {"type": "categorical"}, "displayName": "Balance"}
+              },
+              "frame": {"showTitle": true, "title": "Minimum guarantees recouped vs outstanding by deal type (USD)"}
+            }
+          },
+          "position": {"x": 0, "y": 14, "width": 12, "height": 6}
+        }
+      ]
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "canvasBackgroundColor": {"light": "#FCFCFC", "dark": "#1F272D"},
+      "widgetBackgroundColor": {"light": "#FFFFFF", "dark": "#11171C"},
+      "widgetBorderColor": {"light": "#FFFFFF", "dark": "#11171C"},
+      "fontColor": {"light": "#11171C", "dark": "#E8ECF0"},
+      "selectionColor": {"light": "#594E90", "dark": "#B9B0E8"},
+      "visualizationColors": [
+        "#594E90", "#BC4C96", "#FF5F66", "#FFA600", "#4A8CC7", "#6DD980", "#003F5C"
+      ],
+      "widgetHeaderAlignment": "LEFT"
+    }
+  }
+}

@@ -1,0 +1,79 @@
+# The fallback agent as a Databricks App. Values come from ../lab.yaml and ../state.json;
+# `make agent` passes them in as bundle variables.
+bundle:
+  name: hoshi_fallback_agent
+
+variables:
+  experiment_id:
+    description: MLflow experiment created by scripts/setup_tracing.py
+  warehouse_id:
+    description: SQL warehouse used for trace storage and as the default for SQL
+  trace_schema:
+    description: catalog.schema that stores MLflow traces (the lab schema)
+  agent_model:
+    description: Unity Gateway model service the agent calls (lab.yaml, models.agent)
+    default: system.ai.claude-sonnet-5-5
+  app_name:
+    description: Name of the app
+    default: hoshi-fallback-agent
+  guard:
+    description: enforce keeps the table allowlist on. off is for the guard-off ablation only.
+    default: enforce
+
+# The context folder is written by scripts/sync_context.py from your Unity Catalog tables. It is
+# gitignored, so it has to be included by name.
+sync:
+  include:
+    - context/**
+
+resources:
+  apps:
+    hoshi_fallback_agent:
+      name: ${var.app_name}
+      description: "Governed text-to-SQL fallback agent (SQL allowlist guard, Unity Gateway)"
+      source_code_path: ./
+      config:
+        command: ["uv", "run", "start-server"]
+        env:
+          - name: MLFLOW_TRACKING_URI
+            value: databricks
+          - name: MLFLOW_REGISTRY_URI
+            value: databricks-uc
+          - name: MLFLOW_EXPERIMENT_ID
+            value_from: experiment
+          - name: MLFLOW_TRACING_SQL_WAREHOUSE_ID
+            value_from: sql-warehouse
+          # Without an explicit destination, traces go to experiment storage, which apps cannot reach.
+          - name: MLFLOW_TRACING_DESTINATION
+            value: ${var.trace_schema}
+          - name: AGENT_MODEL
+            value: ${var.agent_model}
+          - name: AGENT_GUARD
+            value: ${var.guard}
+          - name: AGENT_REQUIRE_USER_TOKEN
+            value: "1"
+      # Lets the agent run SQL as the calling user when the caller forwards a user token.
+      user_api_scopes:
+        - sql
+        - ai-gateway
+      resources:
+        - name: experiment
+          experiment:
+            experiment_id: ${var.experiment_id}
+            permission: CAN_MANAGE
+        - name: sql-warehouse
+          sql_warehouse:
+            id: ${var.warehouse_id}
+            permission: CAN_USE
+
+# The workspace comes from the profile passed on the command line (make passes lab.yaml's profile).
+targets:
+  dev:
+    default: true
+
+  # Same agent with the table allowlist turned off, for the guard-on versus guard-off comparison.
+  # Deploy it only for that test and destroy it afterwards (make ablation-agent-destroy).
+  ablation:
+    variables:
+      app_name: hoshi-fallback-agent-noguard
+      guard: "off"

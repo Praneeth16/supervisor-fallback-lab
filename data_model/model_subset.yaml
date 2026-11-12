@@ -1,0 +1,167 @@
+# Subset of the media_broadcasting v2 MVM model used by the Hoshi Stream lab.
+# Names are verified against model.json at the pinned SHA by build_ddl.py.
+# model.json (Databricks License) is NOT vendored here: build_ddl.py fetches it at build time.
+source:
+  repo: databricks-industry-solutions/lakehouse-industry-data-models
+  path: data-models/media_broadcasting/v2/mvm/model.json
+  sha: b0e09a57ef309494d85f87d2bf2e4dfbb374a071
+
+# Columns that the model does not contain but the lab stories need.
+# Each entry is schema.table.column; build_ddl.py creates them, generate.py fills them.
+extensions:
+  content.title.is_simulcast:
+    type: BOOLEAN
+    comment: "Hoshi Stream extension: title is streamed simulcast, one episode per week shortly after the Japanese broadcast."
+  distribution.playback_session.content_episode_id:
+    type: BIGINT
+    references: content.content_episode.content_episode_id
+    comment: "Hoshi Stream extension: the episode watched in this session. The MVM playback_session has no content key."
+  distribution.playback_session.audio_language:
+    type: STRING
+    comment: "Hoshi Stream extension: language of the audio track played (for example Japanese, English, Spanish, Portuguese)."
+  distribution.playback_session.subtitle_language:
+    type: STRING
+    comment: "Hoshi Stream extension: subtitle language shown during the session, NULL when no subtitles were on."
+  rights.content_window.title_id:
+    type: BIGINT
+    references: content.title.title_id
+    comment: "Hoshi Stream extension: title the availability window covers. The MVM content_window has no title key."
+
+# Scope rules: the tag value goes on hoshi_<schema> as agent_scope.
+schemas:
+  subscriber: curated
+  billing: curated
+  content: curated
+  distribution: curated
+  rights: fallback
+  sales: fallback
+  partner: fallback
+  talent: off_limits
+  lab: lab
+
+tables:
+  - {schema: subscriber, table: subscriber, columns: [subscriber_id, territory_id, country_code, preferred_language, account_status, service_tier, registration_source, registration_timestamp, billing_cycle, marketing_opt_in, total_viewing_hours, ltv, arpu, last_viewing_timestamp]}
+  - {schema: subscriber, table: subscription_plan, columns: [subscription_plan_id, plan_code, plan_name, plan_type, service_tier, base_price, currency_code, ad_supported, contract_term_months, trial_duration_days, plan_status, launch_date]}
+  - {schema: subscriber, table: subscription, columns: [subscription_id, subscriber_id, subscription_plan_id, subscription_number, subscription_status, subscription_type, activation_date, current_term_start_date, current_term_end_date, termination_date, base_rate_amount, currency_code, auto_renew_flag, promotional_rate_flag, acquisition_channel]}
+  - {schema: subscriber, table: churn_event, columns: [churn_event_id, subscriber_id, subscription_id, last_viewed_title_id, ott_platform_id, churn_timestamp, churn_type, cancellation_reason_code, cancellation_reason_description, subscription_tenure_months, days_since_last_viewing, payment_failure_count, total_lifetime_revenue, service_tier]}
+  - {schema: subscriber, table: offer, columns: [offer_id, ott_platform_id, code, name, offer_type, offer_status, discount_percentage, discount_amount, price_amount, effective_start_date, effective_end_date, trial_duration_days]}
+  - {schema: subscriber, table: offer_redemption, columns: [offer_redemption_id, offer_id, subscriber_id, subscription_id, resulting_subscription_plan_id, redemption_timestamp, redemption_channel, redemption_status, discount_type, applied_discount_amount, discount_duration_months, first_time_subscriber_flag, revenue_impact_amount]}
+
+  - {schema: billing, table: invoice, columns: [invoice_id, subscriber_id, subscription_plan_id, invoice_number, invoice_date, billing_period_start_date, billing_period_end_date, due_date, paid_date, invoice_status, currency_code, subtotal_amount, discount_amount, tax_amount, total_amount_due, amount_paid]}
+  - {schema: billing, table: payment, columns: [payment_id, invoice_id, payment_number, payment_date, payment_timestamp, payment_status, method_type, gateway, failure_reason, is_autopay, amount, currency_code, refund_amount]}
+  - {schema: billing, table: refund, columns: [refund_id, payment_id, invoice_id, subscriber_id, refund_number, request_date, processing_date, refund_status, refund_type, reason_code, reason_description, amount, currency_code]}
+
+  - {schema: content, table: genre, columns: [genre_id, code, name, description, target_demographic, tier, is_active, parental_guidance_flag, daypart_affinity, syndication_eligibility, effective_start_date, usage_notes]}
+  - {schema: content, table: series, columns: [series_id, genre_id, franchise_name, title, series_type, series_status, premiere_date, finale_date, total_season_count, total_episode_count, original_network, production_company, language_original, country_of_origin]}
+  - {schema: content, table: season, columns: [season_id, series_id, season_number, season_status, original_air_date, finale_date, episode_count_ordered, episode_count_aired, production_year, network_original, language_original]}
+  - {schema: content, table: title, columns: [title_id, series_id, genre_id, name, content_type, production_year, release_date, runtime_seconds, original_language, content_status, parental_advisory_flag, premiere_flag, season_number, country_of_origin, is_simulcast]}
+  - {schema: content, table: content_episode, columns: [content_episode_id, title_id, content_season_id, content_series_id, episode_number, title, runtime_seconds, original_air_date, vod_available_from_date, vod_available_until_date, episode_type, episode_status, subtitles_available, video_resolution]}
+
+  - {schema: distribution, table: ott_platform, columns: [ott_platform_id, platform_code, platform_name, parent_brand, platform_status, service_tier, launch_date, billing_currency, drm_system, primary_streaming_protocol, max_video_resolution, max_concurrent_streams]}
+  - {schema: distribution, table: playback_session, columns: [playback_session_id, subscriber_id, ott_platform_id, content_episode_id, session_start_timestamp, session_end_timestamp, total_watch_duration_seconds, content_duration_seconds, completion_percentage, platform_type, video_resolution, playback_mode, ad_breaks_served_count, audio_language, subtitle_language, exit_reason]}
+
+  - {schema: rights, table: holder, columns: [holder_id, rights_holder_name, rights_holder_code, rights_holder_status, entity_type, territory_of_incorporation, relationship_start_date, default_royalty_rate, payment_terms_days, royalty_calculation_method, preferred_currency, most_favored_nations_flag]}
+  - {schema: rights, table: territory, columns: [territory_id, code, name, iso_alpha_2_code, iso_alpha_3_code, territory_group, territory_type, currency_code, language_primary, time_zone, population]}
+  - {schema: rights, table: license_agreement, columns: [license_agreement_id, primary_license_holder_id, acquisition_deal_id, agreement_number, agreement_type, agreement_status, effective_date, expiry_date, signed_date, territory_scope, exclusivity_flag, minimum_guarantee_amount, total_license_fee, royalty_percentage, currency_code, windowing_strategy]}
+  - {schema: rights, table: content_window, columns: [content_window_id, title_id, ott_platform_id, territory_id, window_type, window_open_date, window_close_date, availability_status, active_flag, exclusivity_tier, license_fee_amount, license_fee_currency, blackout_flag, window_priority]}
+  - {schema: rights, table: royalty_statement, columns: [royalty_statement_id, holder_id, license_agreement_id, statement_number, statement_frequency, statement_period_start_date, statement_period_end_date, statement_due_date, statement_issue_date, statement_status, currency_code, gross_royalty_amount, net_royalty_amount, withholding_tax_amount, paid_timestamp]}
+
+  - {schema: sales, table: advertiser, columns: [advertiser_id, legal_name, trade_name, industry_category, account_status, annual_spend_tier, credit_status, contract_start_date, contract_end_date, is_political_advertiser, payment_terms, preferred_currency_code, billing_country_code]}
+  - {schema: sales, table: campaign, columns: [campaign_id, advertiser_id, series_id, code, name, campaign_type, campaign_status, start_date, end_date, currency_code, total_budget_amount, target_cpm, target_impressions, priority_level, product_brand]}
+  - {schema: sales, table: ad_order, columns: [ad_order_id, advertiser_id, campaign_id, ott_platform_id, order_number, order_type, order_status, flight_start_date, flight_end_date, currency_code, contracted_cpm, total_contracted_value, net_order_value, payment_terms]}
+  - {schema: sales, table: impression_delivery, columns: [impression_delivery_id, campaign_id, content_episode_id, playback_session_id, subscriber_id, delivery_date, delivery_timestamp, insertion_type, ad_pod_position, total_impressions_served, viewable_impressions, completed_views, cpm_realized, revenue_amount, currency_code, verification_status]}
+
+  - {schema: partner, table: partner, columns: [partner_id, code, name, partner_type, subtype, relationship_status, relationship_start_date, risk_tier, strategic_tier, domicile_country_code, is_exclusive, content_specialization]}
+  - {schema: partner, table: acquisition_deal, columns: [acquisition_deal_id, partner_id, deal_number, deal_title, deal_type, deal_status, deal_effective_date, deal_expiration_date, deal_value_amount, minimum_guarantee_amount, currency_code, exclusivity_flag, territory_coverage, revenue_share_percentage]}
+  - {schema: partner, table: minimum_guarantee, columns: [minimum_guarantee_id, acquisition_deal_id, mg_number, mg_type, mg_status, mg_amount, currency_code, recouped_to_date_amount, outstanding_balance_amount, recoupment_percentage, is_recoupable, effective_start_date, effective_end_date, fully_recouped_date, overage_royalty_rate]}
+
+  - {schema: talent, table: talent_profile, columns: [talent_profile_id, stage_name, talent_type, talent_tier, union_affiliation, nationality, primary_language, profile_status, clearance_status, residual_eligibility_flag, work_authorization_status, gdpr_consent_status]}
+  - {schema: talent, table: contract, columns: [contract_id, talent_profile_id, contract_number, contract_type, contract_status, engagement_role, effective_start_date, effective_end_date, base_compensation_amount, compensation_currency, backend_participation_percentage, guild_affiliation, exclusivity_flag, pay_or_play_flag, option_exercise_status]}
+  - {schema: talent, table: compensation_structure, columns: [compensation_structure_id, contract_id, structure_name, structure_status, compensation_type, base_episode_fee, daily_rate, weekly_guarantee, bonus_amount, deferred_compensation_amount, currency_code, overtime_multiplier, residual_eligibility_flag, effective_start_date]}
+
+# Hoshi Stream specific comments. They replace the generic model text, because every agent in the
+# lab (Genie Agents, Genie One, the fallback agent) reads table and column comments.
+table_comments:
+  subscriber.subscriber: "One row per Hoshi Stream account, free or paying. Region comes from territory_id joined to hoshi_rights.territory (territory_group)."
+  subscriber.subscription_plan: "The seven plans: Free (ad-supported), and Fan, Mega Fan and Ultimate Fan, each monthly or annual, with list prices."
+  subscriber.subscription: "One row per period a subscriber spent on one plan. A plan change ends one row (Superseded) and starts another. Free plans are included."
+  subscriber.churn_event: "One row per cancellation, free or paid. There is exactly one churn event for each subscription row with status Cancelled."
+  subscriber.offer: "Promotional offers: free trials, discounts, bundles and win-back offers."
+  subscriber.offer_redemption: "One row per use of an offer by a subscriber."
+  billing.invoice: "One bill for one billing period of one paid subscription. Free subscriptions have no invoices. Annual plans are invoiced once a year."
+  billing.payment: "One payment attempt per invoice, succeeded or failed. Failed payments are not retried."
+  billing.refund: "One refund request against one invoice."
+  content.genre: "The 25 anime genres."
+  content.series: "One row per series, with its franchise name and genre. A franchise can span several series."
+  content.season: "One row per season of a series."
+  content.title: "One row per title: one per season of a series, plus films and specials. Names repeat, so join on title_id."
+  content.content_episode: "One row per episode. A film or special is a single episode of type Feature."
+  distribution.ott_platform: "The eight Hoshi Stream platforms: one web and mobile platform and one TV and console platform in each of the four regions."
+  distribution.playback_session: "One viewing session by one subscriber of one episode on one platform."
+  rights.holder: "One row per rights holder (licensor) that Hoshi Stream licenses content from."
+  rights.territory: "One row per country. territory_group is the region: NA, LATAM, EMEA, APAC, or Rights-only for countries with windows but no subscribers."
+  rights.license_agreement: "One licence agreement with one licensor, linked to one acquisition deal. An agreement is not linked to specific titles."
+  rights.content_window: "One availability window for one title on one platform in one territory. This is the only table that links titles to territories."
+  rights.royalty_statement: "One quarterly royalty statement for one licence agreement, with what is owed to the licensor and whether it was paid."
+  sales.advertiser: "One row per advertiser buying ads on the free tier."
+  sales.campaign: "One ad campaign of one advertiser, with its objective, planned impressions and target CPM."
+  sales.ad_order: "One order line under a campaign. Each campaign has two to four order lines that split its planned impressions."
+  sales.impression_delivery: "One row per ad impression served during a free-tier viewing session."
+  partner.partner: "One row per content partner: studios, distributors, broadcasters and platforms."
+  partner.acquisition_deal: "One content acquisition deal with one partner."
+  partner.minimum_guarantee: "The minimum guarantee of one acquisition deal, with how much has been recouped and how much is outstanding."
+  talent.talent_profile: "Restricted. One row per voice actor or other talent."
+  talent.contract: "Restricted. Talent contracts with pay."
+  talent.compensation_structure: "Restricted. Detailed pay terms of a talent contract."
+
+column_comments:
+  subscriber.subscriber.territory_id: "Country of the subscriber. Join to hoshi_rights.territory; territory_group there is the region (NA, LATAM, EMEA, APAC)."
+  subscriber.subscriber.service_tier: "Tier of the subscriber's current plan, or of the last plan if the account is cancelled: Free, Fan, Mega Fan or Ultimate Fan."
+  subscriber.subscriber.registration_timestamp: "When the account was created, 1 to 14 days before the first subscription. For sign-up dates use the earliest subscription.activation_date."
+  subscriber.subscriber.ltv: "Lifetime value in US dollars: everything the subscriber has paid. Refunds are not subtracted."
+  subscriber.subscription_plan.plan_type: "Paid or Free. Use Paid when counting paying subscribers."
+  subscriber.subscription_plan.base_price: "List price in US dollars per billing period (month or year). What a subscriber actually pays is subscription.base_rate_amount."
+  subscriber.subscription.subscription_status: "Active is the current plan. Cancelled means the subscriber left (churn). Superseded means the row was replaced by a later plan and is not churn."
+  subscriber.subscription.subscription_type: "Monthly, Annual or Free."
+  subscriber.subscription.activation_date: "Day this plan period started. The earliest activation_date of a subscriber is the sign-up date."
+  subscriber.subscription.termination_date: "Day this plan period ended: the churn date for Cancelled rows, the plan change date for Superseded rows. Empty while Active."
+  subscriber.subscription.base_rate_amount: "Price in US dollars the subscriber pays per billing period (a month, or a year for annual plans), including regional price changes. For monthly recurring revenue divide annual rows by 12."
+  subscriber.churn_event.churn_type: "Voluntary (the subscriber cancelled) or Involuntary (ended after failed payments)."
+  subscriber.churn_event.cancellation_reason_code: "Reason for leaving: price, content, competitor, not_using, technical or other."
+  billing.invoice.invoice_date: "Day the invoice was issued, which is the first day of its billing period. Use it to place revenue in a month."
+  billing.invoice.subtotal_amount: "Amount before tax in US dollars. Revenue without tax is subtotal_amount minus discount_amount."
+  billing.invoice.total_amount_due: "Amount billed in US dollars including tax."
+  billing.invoice.amount_paid: "Amount collected in US dollars. Zero when the payment failed."
+  billing.invoice.invoice_status: "Paid, Overdue (payment failed and the due date has passed) or Open (payment failed, not yet due)."
+  billing.payment.amount: "Amount attempted in US dollars, including failed attempts. Filter on payment_status = 'Succeeded' before summing."
+  billing.payment.method_type: "Payment method: Credit Card, Debit Card, Direct Debit, PayPal or Gift Card."
+  billing.refund.refund_status: "Processed (money returned) or Requested (not yet processed)."
+  content.series.franchise_name: "Franchise the series belongs to. One franchise can cover several series."
+  content.title.content_type: "Series (one season of a series), Film or Special."
+  content.title.is_simulcast: "True when the title streams as a simulcast, one new episode a week shortly after the Japanese broadcast."
+  distribution.ott_platform.platform_code: "Code in the form HS-<region>-<WM or TV>, for example HS-LATAM-WM. The middle part is the region."
+  distribution.playback_session.total_watch_duration_seconds: "Seconds actually watched in this session. Divide by 3600 for watch hours."
+  distribution.playback_session.completion_percentage: "Share of the episode watched in this session, 0 to 100."
+  distribution.playback_session.platform_type: "Device used: Smart TV, Console, Mobile, Tablet or Web browser."
+  distribution.playback_session.ad_breaks_served_count: "Ad breaks shown in the session. Only free-plan sessions have ads."
+  rights.territory.territory_group: "Region: NA, LATAM, EMEA or APAC. Rights-only marks countries where Hoshi Stream holds windows but has no subscribers."
+  rights.license_agreement.primary_license_holder_id: "The licensor. Join to hoshi_rights.holder on holder_id for the name."
+  rights.license_agreement.agreement_status: "Active or Expired, according to expiry_date."
+  rights.license_agreement.expiry_date: "Day the licence ends. Use it for questions about agreements expiring soon."
+  rights.license_agreement.territory_scope: "Region the licence covers: Worldwide, NA, LATAM, EMEA or APAC."
+  rights.license_agreement.minimum_guarantee_amount: "Minimum guarantee of this licence in US dollars. It is separate from the minimum guarantee of the acquisition deal."
+  rights.content_window.active_flag: "True when the window is open now. A title is available in a territory when it has an active window there."
+  rights.royalty_statement.statement_status: "Paid, Overdue (late), or Issued and Pending (not yet due)."
+  rights.royalty_statement.net_royalty_amount: "Royalty owed to the licensor in US dollars, after withholding tax."
+  sales.campaign.campaign_type: "Campaign objective: Awareness, Consideration, Conversion or Brand Launch."
+  sales.campaign.target_impressions: "Impressions the advertiser ordered for this campaign. Compare with delivered impressions for the delivery ratio."
+  sales.campaign.series_id: "Series the campaign is themed around. It does not show where the ads ran; for that go from impression_delivery to the episode."
+  sales.campaign.total_budget_amount: "Planned budget in US dollars (target impressions at target CPM). It is a plan, not spend."
+  sales.ad_order.total_contracted_value: "Contracted value of the order line in US dollars. Ordered impressions are total_contracted_value * 1000 / contracted_cpm."
+  sales.impression_delivery.total_impressions_served: "Always 1: each row is one impression. Count rows to count delivered impressions."
+  sales.impression_delivery.cpm_realized: "Price per thousand impressions for this impression, in US dollars. Average it for CPM. Ad revenue is SUM(cpm_realized) / 1000."
+  sales.impression_delivery.revenue_amount: "Revenue of this single impression rounded to the cent. Too coarse for CPM or revenue totals; use cpm_realized."
+  partner.minimum_guarantee.mg_status: "Recouped (fully earned back) or Recouping (still outstanding)."
+  partner.minimum_guarantee.recouped_to_date_amount: "US dollars of the guarantee earned back so far. Share recouped is recouped_to_date_amount / mg_amount."
+  partner.minimum_guarantee.outstanding_balance_amount: "US dollars of the guarantee not yet earned back."
+  partner.minimum_guarantee.recoupment_percentage: "Contract term, always 100. It is not the share recouped so far."

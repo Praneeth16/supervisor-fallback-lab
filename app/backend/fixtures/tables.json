@@ -1,0 +1,18 @@
+[
+  "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber_account",
+  "serverless_lakebase_praneeth_catalog.hoshi_subscriber.plan_change",
+  "serverless_lakebase_praneeth_catalog.hoshi_billing.payment_attempt",
+  "serverless_lakebase_praneeth_catalog.hoshi_billing.invoice",
+  "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+  "serverless_lakebase_praneeth_catalog.hoshi_content.episode",
+  "serverless_lakebase_praneeth_catalog.hoshi_distribution.viewing_session",
+  "serverless_lakebase_praneeth_catalog.hoshi_distribution.cdn_delivery_daily",
+  "serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement",
+  "serverless_lakebase_praneeth_catalog.hoshi_rights.territory_window",
+  "serverless_lakebase_praneeth_catalog.hoshi_rights.royalty_statement",
+  "serverless_lakebase_praneeth_catalog.hoshi_sales.licensing_deal",
+  "serverless_lakebase_praneeth_catalog.hoshi_sales.sales_pipeline",
+  "serverless_lakebase_praneeth_catalog.hoshi_partner.partner_account",
+  "serverless_lakebase_praneeth_catalog.hoshi_partner.device_activation",
+  "serverless_lakebase_praneeth_catalog.hoshi_partner.partner_contract"
+]

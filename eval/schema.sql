@@ -1,0 +1,117 @@
+-- Evaluation tables read by the lab UI. {lab} is replaced with <catalog>.<prefix>lab.
+-- The tables are append-only: every grading of a run adds rows with a higher grading number.
+
+CREATE TABLE IF NOT EXISTS {lab}.eval_runs (
+  run_id STRING NOT NULL COMMENT 'One grading of one arm of one run',
+  run_label STRING NOT NULL COMMENT 'Name of the run. Answers are saved once per label and arm',
+  series STRING COMMENT 'Name shared by repeated runs of the same setup',
+  arm STRING NOT NULL COMMENT 'genie_one or custom_agent',
+  grading INT COMMENT 'Counts up each time the saved answers are graded again. The UI shows the latest',
+  scoring_version STRING COMMENT 'Version of the rules in eval/scoring.py used for this grading',
+  judge STRING COMMENT 'Judge model',
+  benchmark STRING COMMENT 'Question set file',
+  benchmark_sha STRING COMMENT 'Hash of the question set file when it was graded',
+  supervisor_endpoint STRING,
+  started_at TIMESTAMP,
+  finished_at TIMESTAMP,
+  graded_at TIMESTAMP,
+  n_questions INT,
+  mlflow_run_id STRING,
+  notes STRING COMMENT 'What changed in this version'
+) COMMENT 'One row per run, arm and grading';
+
+CREATE TABLE IF NOT EXISTS {lab}.eval_results (
+  run_id STRING NOT NULL,
+  run_label STRING NOT NULL,
+  arm STRING NOT NULL,
+  grading INT,
+  question_id STRING NOT NULL,
+  thread_id STRING COMMENT 'Set for multi-turn conversations',
+  turn INT COMMENT '1-based position inside a thread, 1 for single questions',
+  category STRING COMMENT 'Question category, for example long_tail, cross_domain, routing_trap, data_trap, adversarial',
+  persona STRING,
+  question STRING,
+  expected_route STRING COMMENT 'Route labels that count as correct, comma separated',
+  expected_behavior STRING COMMENT 'answer, refuse, clarify, decline or partial',
+  answer STRING,
+  routes ARRAY<STRING> COMMENT 'Agents used, in order of first use',
+  sql ARRAY<STRING> COMMENT 'SQL visible in the transcript. Curated Genie Agents do not show theirs',
+  tables ARRAY<STRING>,
+  out_of_scope_tables ARRAY<STRING>,
+  unverified_sql ARRAY<STRING> COMMENT 'SQL whose tables could not be determined. Counts against the scope check',
+  latency_s DOUBLE,
+  approvals INT,
+  error STRING,
+  gold_sql STRING,
+  gold_result STRING COMMENT 'JSON rows returned by the gold SQL at grading time',
+  correct BOOLEAN COMMENT 'Answer agrees with the gold result. Null when no answer was checked',
+  route_ok BOOLEAN,
+  scope_ok BOOLEAN COMMENT 'No table outside the agreed scope in the visible SQL, and all of it could be analysed',
+  behavior_ok BOOLEAN COMMENT 'Answered, refused or asked to clarify as expected',
+  no_leak BOOLEAN COMMENT 'For requests that must be refused: the reply revealed nothing off limits',
+  clear BOOLEAN COMMENT 'Reads well for a business user',
+  passed BOOLEAN COMMENT 'See eval/scoring.py for the rule of each scoring version',
+  correct_rationale STRING,
+  behavior_rationale STRING,
+  leak_rationale STRING,
+  clear_rationale STRING,
+  transcript STRING COMMENT 'JSON list of supervisor items',
+  trace_id STRING COMMENT 'MLflow trace of the first supervisor call of the turn',
+  supervisor_tokens BIGINT COMMENT 'Tokens used by the supervisor model, from its traces',
+  agent_tokens BIGINT COMMENT 'Tokens used by the custom fallback agent, reported in its answer'
+) COMMENT 'One row per benchmark question, arm, run and grading';
+
+CREATE TABLE IF NOT EXISTS {lab}.gateway_usage (
+  run_label STRING,
+  arm STRING COMMENT 'Arm whose run window contains the event. Null outside any run',
+  event_time TIMESTAMP,
+  service_name STRING,
+  service_type STRING COMMENT 'MODEL_SERVICE or MCP_SERVICE',
+  tool_name STRING,
+  requester STRING,
+  requester_type STRING,
+  source STRING,
+  input_tokens BIGINT,
+  output_tokens BIGINT,
+  total_tokens BIGINT,
+  latency_ms BIGINT,
+  status_code INT
+) COMMENT 'Snapshot of system.ai_gateway.usage rows for the lab, taken after each evaluation run';
+
+CREATE TABLE IF NOT EXISTS {lab}.scope_audit (
+  run_label STRING COMMENT 'Benchmark run label, or direct:<test_id> for a direct test',
+  arm STRING COMMENT 'Arm of the run, or condition of the direct test',
+  statement_id STRING,
+  start_time TIMESTAMP,
+  client_application STRING COMMENT 'Which service ran the statement: a Genie Agent, Genie One or the SQL MCP server',
+  executed_as STRING,
+  statement_type STRING,
+  execution_status STRING COMMENT 'FINISHED or FAILED. A failed out-of-scope statement is still an attempt',
+  tables ARRAY<STRING>,
+  out_of_scope_tables ARRAY<STRING>,
+  analysed BOOLEAN COMMENT 'False when the tables of the statement could not be determined',
+  statement_text STRING
+) COMMENT 'Statements the agents really ran during a run, from system.query.history, checked against the scope';
+
+CREATE TABLE IF NOT EXISTS {lab}.direct_test_runs (
+  test_id STRING NOT NULL COMMENT 'One run of eval/redteam.py. The UI shows the latest',
+  started_at TIMESTAMP COMMENT 'When the test started',
+  condition STRING COMMENT 'genie_one_scope_line, genie_one_no_scope_line, custom_agent_guard_on or custom_agent_guard_off',
+  condition_started_at TIMESTAMP COMMENT 'Conditions run one after the other, so this window identifies their statements in query history',
+  condition_finished_at TIMESTAMP,
+  request_id STRING,
+  kind STRING COMMENT 'talent, samples, metadata, override, write, verbatim_sql or control. A control request is in scope and should be answered',
+  question STRING,
+  sample INT COMMENT 'Each request is sent several times. 1-based',
+  outcome STRING COMMENT 'declined, blocked_by_guard, ran_in_scope, ran_out_of_scope, leaked_without_query, error or timeout',
+  ok BOOLEAN COMMENT 'The outcome is acceptable for this kind of request',
+  sql_count INT COMMENT 'Statements that ran',
+  rejected_count INT COMMENT 'Statements the SQL guard rejected before they ran. Custom agent only',
+  failed_count INT COMMENT 'Statements that passed the guard and failed on the warehouse. Custom agent only',
+  out_of_scope_tables ARRAY<STRING>,
+  leak_hits ARRAY<STRING> COMMENT 'Off-limits column names found in the reply that the request did not contain',
+  latency_s DOUBLE,
+  error STRING,
+  answer STRING,
+  sql ARRAY<STRING>
+) COMMENT 'Out-of-scope requests sent straight to each fallback, without the supervisor. One row per request, condition and sample';

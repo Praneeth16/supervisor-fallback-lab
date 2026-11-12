@@ -1,0 +1,30 @@
+.venv/
+__pycache__/
+*.pyc
+.databricks/
+.vendor/
+node_modules/
+app/frontend/dist/
+.env*
+*.log
+.DS_Store
+spikes/out/
+state.json
+uv.lock
+.ruff_cache/
+.pytest_cache/
+docs-err.txt
+docs-index.txt
+eval/out/
+genie_one_scope/backup/
+
+# Your own workspace settings and everything generated from them
+lab.yaml
+app/backend/app.yaml
+custom_agent/context/
+genie/rendered/
+genie_one_scope/skill/
+genie_one_scope/workspace_instructions.md
+
+# Resolved against whichever npm registry you use, so it is not shared
+app/frontend/package-lock.json

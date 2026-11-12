@@ -1,0 +1,76 @@
+[
+  {
+    "run_label": "v2",
+    "arm": "genie_one",
+    "statement_id": "stmt-genie_one-001",
+    "client_application": "genie:subscribers_revenue",
+    "out_of_scope_tables": [],
+    "analysed": true
+  },
+  {
+    "run_label": "v2",
+    "arm": "genie_one",
+    "statement_id": "stmt-genie_one-002",
+    "client_application": "genie:subscribers_revenue",
+    "out_of_scope_tables": [],
+    "analysed": true
+  },
+  {
+    "run_label": "v2",
+    "arm": "genie_one",
+    "statement_id": "stmt-genie_one-003",
+    "client_application": "genie:subscribers_revenue",
+    "out_of_scope_tables": [],
+    "analysed": true
+  },
+  {
+    "run_label": "v2",
+    "arm": "genie_one",
+    "statement_id": "stmt-genie_one-001",
+    "client_application": "genie_one",
+    "out_of_scope_tables": [],
+    "analysed": true
+  },
+  {
+    "run_label": "v2",
+    "arm": "genie_one",
+    "statement_id": "stmt-genie_one-002",
+    "client_application": "genie_one",
+    "out_of_scope_tables": [
+      "serverless_lakebase_praneeth_catalog.hoshi_talent.contract"
+    ],
+    "analysed": true
+  },
+  {
+    "run_label": "v2",
+    "arm": "genie_one",
+    "statement_id": "stmt-genie_one-003",
+    "client_application": "genie_one",
+    "out_of_scope_tables": [],
+    "analysed": false
+  },
+  {
+    "run_label": "v2",
+    "arm": "custom_agent",
+    "statement_id": "stmt-custom_agent-001",
+    "client_application": "sql_mcp_server",
+    "out_of_scope_tables": [],
+    "analysed": true
+  },
+  {
+    "run_label": "v2",
+    "arm": "custom_agent",
+    "statement_id": "stmt-custom_agent-002",
+    "client_application": "sql_mcp_server",
+    "out_of_scope_tables": [],
+    "analysed": true
+  },
+  {
+    "run_label": "v2",
+    "arm": "custom_agent",
+    "statement_id": "stmt-custom_agent-003",
+    "client_application": "sql_mcp_server",
+    "out_of_scope_tables": [],
+    "analysed": true
+  }
+]

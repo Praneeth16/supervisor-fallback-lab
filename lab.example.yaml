@@ -1,0 +1,29 @@
+# Lab configuration, read by the Makefile and every script.
+# Copy this file to lab.yaml (make setup does it for you) and fill in the four workspace values.
+# lab.yaml stays on your machine. git ignores it.
+workspace:
+  profile: my-profile                  # Databricks CLI profile: databricks auth login --host <url> --profile my-profile
+  host: https://my-workspace.cloud.databricks.com   # the same workspace as the profile
+  warehouse_id: 0123456789abcdef       # a serverless SQL warehouse you can use
+  catalog: main                        # a catalog where you can create schemas
+  schema_prefix: hoshi_                # schemas are <prefix><domain>, lab objects live in <prefix>lab
+
+brand: Hoshi Stream                    # the fictional company in the synthetic data
+
+models:
+  agent: system.ai.claude-sonnet-5-5     # custom agent, called through Unity Gateway
+  judge: databricks-gpt-5-5              # a different model family from the agent, on purpose
+  second_judge: databricks-gemini-3-8-flash   # a third family, used only to check the first judge
+
+data:
+  as_of: 2026-11-10                    # "today" for the synthetic data. It runs through the day before
+
+# Who may use what. Rendered into the Genie One skill and instructions (arm A)
+# and enforced in code by the custom agent's SQL guard (arm B).
+scope:
+  genie_agents:
+    subscribers_revenue: [subscriber, billing]
+    content_viewing: [content, distribution]
+  fallback: [rights, sales, partner]      # what the fallback may answer from
+  join_only: [subscriber, billing, content, distribution]   # the fallback may join to these
+  off_limits: [talent]                    # visible to users, never allowed for agents

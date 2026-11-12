@@ -1,0 +1,169 @@
+# Curated Genie Agent 2. Placeholders: {content}, {distribution}, {subscriber}, {rights} expand to the
+# schema names, {today} to the lab's as-of date (lab.yaml: data.as_of).
+key: content_viewing
+display_name: "Hoshi Stream: Content and Viewing"
+description: >-
+  The Hoshi Stream catalogue (series, seasons, titles, episodes, genres) and how it is watched:
+  sessions, watch time, completion, devices, regions, dubbed versus subtitled viewing.
+
+tables:
+  - content.title
+  - content.series
+  - content.season
+  - content.content_episode
+  - content.genre
+  - distribution.playback_session
+  - distribution.ott_platform
+  - subscriber.subscriber
+  - rights.territory
+
+value_columns:
+  content.title: [content_type, name]
+  content.series: [franchise_name, title, series_type, series_status]
+  content.genre: [name, target_demographic]
+  content.content_episode: [episode_type]
+  distribution.playback_session: [platform_type, playback_mode, audio_language, subtitle_language, exit_reason, video_resolution]
+  distribution.ott_platform: [platform_code, platform_name]
+  subscriber.subscriber: [service_tier, country_code]
+  rights.territory: [territory_group, name, iso_alpha_2_code]
+
+hidden_columns:
+  subscriber.subscriber: [ltv, arpu, billing_cycle, marketing_opt_in, registration_source, registration_timestamp, account_status]
+
+instructions: |
+  ## Purpose
+  Answer questions about the Hoshi Stream catalogue and how subscribers watch it.
+  ## Dates
+  The data runs through 2026-11-09. Treat 2026-11-10 as today for relative dates such as "last month" or "this quarter". The current month is partial.
+  ## Definitions
+  - Watch hours: SUM(total_watch_duration_seconds) / 3600. Sessions: count of playback_session rows.
+  - Completion rate: AVG(completion_percentage).
+  - Path from a session to content: playback_session.content_episode_id to content_episode, then title, then series, then genre. Always join on ids; names repeat.
+  - Franchise: series.franchise_name. A franchise can cover several series and titles.
+  - Simulcast: title.is_simulcast = true. Everything else is catalogue.
+  - Region of viewing: territory_group of the viewer (subscriber.territory_id to hoshi_rights.territory): NA, LATAM, EMEA, APAC.
+  - Dubbed viewing: audio_language is not 'Japanese'. Subtitled or original viewing: audio_language = 'Japanese'.
+  - Device: platform_type.
+  - Recently or lately: the last six months.
+  - Rankings: order by the exact value, not by a rounded one.
+  ## Limits
+  The subscriber table is here only for the viewer's tier and country. This agent has no revenue, churn, billing, licensing or advertising data. Say so when asked.
+
+joins:
+  - {left: distribution.playback_session, right: content.content_episode, keys: [content_episode_id, content_episode_id]}
+  - {left: content.content_episode, right: content.title, keys: [title_id, title_id]}
+  - {left: content.content_episode, right: content.season, keys: [content_season_id, season_id]}
+  - {left: content.title, right: content.series, keys: [series_id, series_id]}
+  - {left: content.season, right: content.series, keys: [series_id, series_id]}
+  - {left: content.series, right: content.genre, keys: [genre_id, genre_id]}
+  - {left: distribution.playback_session, right: distribution.ott_platform, keys: [ott_platform_id, ott_platform_id]}
+  - {left: distribution.playback_session, right: subscriber.subscriber, keys: [subscriber_id, subscriber_id]}
+  - {left: subscriber.subscriber, right: rights.territory, keys: [territory_id, territory_id]}
+
+filters:
+  - name: Simulcast titles
+    sql: "title.is_simulcast = true"
+    synonyms: [simulcast, simulcasts]
+  - name: Streaming sessions only
+    sql: "playback_session.playback_mode = 'Streaming'"
+  - name: Dubbed viewing
+    sql: "playback_session.audio_language <> 'Japanese'"
+    synonyms: [dub, dubbed]
+
+measures:
+  - name: Watch hours
+    sql: "SUM(playback_session.total_watch_duration_seconds) / 3600.0"
+    synonyms: [watch time, hours watched, viewing hours]
+  - name: Sessions
+    sql: "COUNT(playback_session.playback_session_id)"
+    synonyms: [views, plays]
+  - name: Viewers
+    sql: "COUNT(DISTINCT playback_session.subscriber_id)"
+    synonyms: [unique viewers, audience]
+  - name: Completion rate
+    sql: "AVG(playback_session.completion_percentage)"
+    synonyms: [average completion]
+
+# The examples, sample questions and built-in benchmark below must not ask for the same thing as
+# any question in eval/benchmark*.yaml. scripts/check_overlap.py fails when one does. The agent
+# still learns the business definitions from the instructions, joins, filters and measures above.
+sample_questions:
+  - Which series have the most episodes?
+  - How many titles came out in each production year?
+  - How often do people watch with subtitles on?
+  - What resolution do people stream in?
+
+examples:
+  - question: Which ten series have the most episodes?
+    sql: |
+      SELECT s.series_id, s.title AS series, COUNT(*) AS episodes
+      FROM {content}.content_episode AS e
+      JOIN {content}.series AS s ON s.series_id = e.content_series_id
+      GROUP BY s.series_id, s.title
+      ORDER BY episodes DESC
+      LIMIT 10
+  - question: How many titles do we have from each production year?
+    sql: |
+      SELECT production_year, COUNT(*) AS titles
+      FROM {content}.title
+      GROUP BY production_year
+      ORDER BY production_year
+  - question: What share of sessions had subtitles on, by audio language?
+    sql: |
+      SELECT audio_language,
+             ROUND(SUM(CASE WHEN subtitle_language IS NOT NULL THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) AS subtitled_percent
+      FROM {distribution}.playback_session
+      GROUP BY audio_language
+      ORDER BY subtitled_percent DESC
+  - question: How many sessions were played at each video resolution last quarter?
+    sql: |
+      SELECT video_resolution, COUNT(*) AS sessions
+      FROM {distribution}.playback_session
+      WHERE session_start_timestamp >= DATE_TRUNC('QUARTER', ADD_MONTHS({today}, -3))
+        AND session_start_timestamp < DATE_TRUNC('QUARTER', {today})
+      GROUP BY video_resolution
+      ORDER BY sessions DESC
+  - question: What is the average completion of sessions by the audience a genre is aimed at?
+    sql: |
+      SELECT g.target_demographic, ROUND(AVG(p.completion_percentage), 1) AS average_completion_percent
+      FROM {distribution}.playback_session AS p
+      JOIN {content}.content_episode AS e ON e.content_episode_id = p.content_episode_id
+      JOIN {content}.title AS t ON t.title_id = e.title_id
+      JOIN {content}.series AS s ON s.series_id = t.series_id
+      JOIN {content}.genre AS g ON g.genre_id = s.genre_id
+      GROUP BY g.target_demographic
+      ORDER BY average_completion_percent DESC
+
+benchmarks:
+  - question: How many series are ongoing and how many are completed?
+    sql: |
+      SELECT series_status, COUNT(*) AS series FROM {content}.series GROUP BY series_status
+  - question: How many seasons are in the catalogue?
+    sql: |
+      SELECT COUNT(*) AS seasons FROM {content}.season
+  - question: How many sessions ended with an error?
+    sql: |
+      SELECT COUNT(*) AS sessions FROM {distribution}.playback_session WHERE exit_reason = 'Error'
+  - question: What is the average episode runtime in minutes?
+    sql: |
+      SELECT ROUND(AVG(runtime_seconds) / 60.0, 1) AS average_minutes FROM {content}.content_episode
+  - question: How many titles carry a parental advisory?
+    sql: |
+      SELECT COUNT(*) AS titles FROM {content}.title WHERE parental_advisory_flag = true
+  - question: How many distinct subscribers watched something in September 2025?
+    sql: |
+      SELECT COUNT(DISTINCT subscriber_id) AS viewers FROM {distribution}.playback_session
+      WHERE session_start_timestamp >= DATE'2025-09-01' AND session_start_timestamp < DATE'2025-10-01'
+  - question: How many genres are aimed at kids?
+    sql: |
+      SELECT COUNT(*) AS genres FROM {content}.genre WHERE target_demographic = 'Kids'
+  - question: How many episodes are available in each video resolution?
+    sql: |
+      SELECT video_resolution, COUNT(*) AS episodes FROM {content}.content_episode GROUP BY video_resolution
+  - question: How many series are OVAs?
+    sql: |
+      SELECT COUNT(*) AS series FROM {content}.series WHERE series_type = 'OVA'
+  - question: How many sessions in 2025 were watched in 4K?
+    sql: |
+      SELECT COUNT(*) AS sessions FROM {distribution}.playback_session
+      WHERE video_resolution = '4K' AND session_start_timestamp >= DATE'2025-01-01' AND session_start_timestamp < DATE'2026-01-01'

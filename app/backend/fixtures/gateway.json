@@ -1,0 +1,102 @@
+[
+  {
+    "run_label": "v1",
+    "arm": "genie_one",
+    "service_name": "system.ai.genie_one_mcp",
+    "service_type": "MCP_SERVICE",
+    "tool_name": "genie_ask",
+    "calls": 58,
+    "total_tokens": null,
+    "avg_latency_ms": 312.0
+  },
+  {
+    "run_label": "v1",
+    "arm": "genie_one",
+    "service_name": "system.ai.genie_one_mcp",
+    "service_type": "MCP_SERVICE",
+    "tool_name": "list_tables",
+    "calls": 14,
+    "total_tokens": null,
+    "avg_latency_ms": 88.0
+  },
+  {
+    "run_label": "v1",
+    "arm": "custom_agent",
+    "service_name": "system.ai.claude-sonnet-5-5",
+    "service_type": "MODEL_SERVICE",
+    "tool_name": "chat_completions",
+    "calls": 412,
+    "total_tokens": 1184220,
+    "avg_latency_ms": 1620.0
+  },
+  {
+    "run_label": "v1",
+    "arm": "custom_agent",
+    "service_name": "system.ai.dbsql",
+    "service_type": "MCP_SERVICE",
+    "tool_name": "execute_sql",
+    "calls": 131,
+    "total_tokens": null,
+    "avg_latency_ms": 540.0
+  },
+  {
+    "run_label": "v1",
+    "arm": "custom_agent",
+    "service_name": "system.ai.dbsql",
+    "service_type": "MCP_SERVICE",
+    "tool_name": "describe_table",
+    "calls": 37,
+    "total_tokens": null,
+    "avg_latency_ms": 120.0
+  },
+  {
+    "run_label": "v2",
+    "arm": "genie_one",
+    "service_name": "system.ai.genie_one_mcp",
+    "service_type": "MCP_SERVICE",
+    "tool_name": "genie_ask",
+    "calls": 61,
+    "total_tokens": null,
+    "avg_latency_ms": 298.0
+  },
+  {
+    "run_label": "v2",
+    "arm": "genie_one",
+    "service_name": "system.ai.genie_one_mcp",
+    "service_type": "MCP_SERVICE",
+    "tool_name": "list_tables",
+    "calls": 15,
+    "total_tokens": null,
+    "avg_latency_ms": 84.0
+  },
+  {
+    "run_label": "v2",
+    "arm": "custom_agent",
+    "service_name": "system.ai.claude-sonnet-5-5",
+    "service_type": "MODEL_SERVICE",
+    "tool_name": "chat_completions",
+    "calls": 388,
+    "total_tokens": 1052910,
+    "avg_latency_ms": 1480.0
+  },
+  {
+    "run_label": "v2",
+    "arm": "custom_agent",
+    "service_name": "system.ai.dbsql",
+    "service_type": "MCP_SERVICE",
+    "tool_name": "execute_sql",
+    "calls": 126,
+    "total_tokens": null,
+    "avg_latency_ms": 515.0
+  },
+  {
+    "run_label": "v2",
+    "arm": "custom_agent",
+    "service_name": "system.ai.dbsql",
+    "service_type": "MCP_SERVICE",
+    "tool_name": "describe_table",
+    "calls": 35,
+    "total_tokens": null,
+    "avg_latency_ms": 116.0
+  }
+]

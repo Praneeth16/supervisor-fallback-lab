@@ -1,0 +1,2553 @@
+{
+ "label": "v3-original",
+ "arm": "genie_one",
+ "turns": {
+  "cs01": [
+   {
+    "trace_id": "tr-598a09ce856f6a1a4db3e42e0b2460ca",
+    "tools": [
+     {
+      "tool": "subscribers_revenue",
+      "route": "genie:subscribers_revenue",
+      "genie_space_id": "01f1dde65eb21e6b953e73d666983ab5",
+      "conversation_id": "01f1de1c375f1d5f86c50fa946de91e9",
+      "sql": [
+       "SELECT COUNT(DISTINCT CASE WHEN `subscription`.`subscription_status` = 'Active' AND `subscription_plan`.`plan_type` = 'Paid' THEN `subscription`.`subscriber_id` END) AS `paying_subscribers`\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscription` AS `subscription`\nJOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscription_plan` AS `subscription_plan`\n  ON `subscription`.`subscription_plan_id` = `subscription_plan`.`subscription_plan_id`"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription_plan"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cs02": [
+   {
+    "trace_id": "tr-09292c5cfe89c9b407d4ad36d58fc3c3",
+    "tools": [
+     {
+      "tool": "subscribers_revenue",
+      "route": "genie:subscribers_revenue",
+      "genie_space_id": "01f1dde65eb21e6b953e73d666983ab5",
+      "conversation_id": "01f1de1c36ae1038badf3a31b77932ed",
+      "sql": [
+       "SELECT `subscription_plan`.`plan_name`, COUNT(DISTINCT `subscription`.`subscriber_id`) AS `paying_subscribers`\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscription` AS `subscription`\nJOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscription_plan` AS `subscription_plan`\n  ON `subscription`.`subscription_plan_id` = `subscription_plan`.`subscription_plan_id`\nWHERE `subscription`.`subscription_status` = 'Active'\n  AND `subscription_plan`.`plan_type` = 'Paid'\n  AND `subscription_plan`.`plan_name` IS NOT NULL\nGROUP BY `subscription_plan`.`plan_name`\nORDER BY `paying_subscribers` DESC, `subscription_plan`.`plan_name`"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription_plan"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cs03": [
+   {
+    "trace_id": "tr-4298ba1befc3d1ab8649268a1acd834e",
+    "tools": [
+     {
+      "tool": "subscribers_revenue",
+      "route": "genie:subscribers_revenue",
+      "genie_space_id": "01f1dde65eb21e6b953e73d666983ab5",
+      "conversation_id": "01f1de1c36a318898e70a375860e8482",
+      "sql": [
+       "WITH regional_counts AS (\n  SELECT\n    `territory`.`territory_group` AS `region`,\n    COUNT(DISTINCT `subscription`.`subscriber_id`) AS `paying_customers`\n  FROM `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscription` AS `subscription`\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscription_plan` AS `subscription_plan`\n    ON `subscription`.`subscription_plan_id` = `subscription_plan`.`subscription_plan_id`\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscriber` AS `subscriber`\n    ON `subscription`.`subscriber_id` = `subscriber`.`subscriber_id`\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`territory` AS `territory`\n    ON `subscriber`.`territory_id` = `territory`.`territory_id`\n  WHERE `subscription`.`subscription_status` = 'Active'\n    AND `subscription_plan`.`plan_type` = 'Paid'\n    AND `territory`.`territory_group` IS NOT NULL\n  GROUP BY `territory`.`territory_group`\n), ranked_regions AS (\n  SELECT\n    `region`,\n    `paying_customers`,\n    RANK() OVER (ORDER BY `paying_customers` DESC) AS `region_rank`\n  FROM regional_counts\n)\nSELECT `region`, `paying_customers`\nFROM ranked_regions\nWHERE `region_rank` <= 1\nORDER BY `paying_customers` DESC, `region`"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.territory",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription_plan"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cs04": [
+   {
+    "trace_id": "tr-c2bf39424cb5c8ee6f194d138c9756ba",
+    "tools": [
+     {
+      "tool": "subscribers_revenue",
+      "route": "genie:subscribers_revenue",
+      "genie_space_id": "01f1dde65eb21e6b953e73d666983ab5",
+      "conversation_id": "01f1de1c367f195e9c5a7004f95b5e80",
+      "sql": [
+       "SELECT ROUND(SUM(CASE WHEN `subscription`.`subscription_type` = 'Annual' THEN try_divide(`subscription`.`base_rate_amount`,12) ELSE `subscription`.`base_rate_amount` END), 2) AS `mrr`\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscription` AS `subscription`\nJOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscription_plan` AS `subscription_plan`\n  ON `subscription`.`subscription_plan_id` = `subscription_plan`.`subscription_plan_id`\nWHERE `subscription`.`subscription_status` = 'Active'\n  AND `subscription_plan`.`plan_type` = 'Paid'"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription_plan"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cs05": [
+   {
+    "trace_id": "tr-0e59b1f0769344d9a4c0ab3a0827cfdc",
+    "tools": [
+     {
+      "tool": "subscribers_revenue",
+      "route": "genie:subscribers_revenue",
+      "genie_space_id": "01f1dde65eb21e6b953e73d666983ab5",
+      "conversation_id": "01f1de1c42261dc09c73c7c8400e013f",
+      "sql": [
+       "SELECT COALESCE(SUM(`invoice`.`amount_paid`), 0) AS `collected_revenue`\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_billing`.`invoice` AS `invoice`\nWHERE `invoice`.`invoice_date` >= DATE'2026-10-01'\n  AND `invoice`.`invoice_date` < DATE'2026-11-01'"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_billing.invoice"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cs06": [
+   {
+    "trace_id": "tr-abdcecccccfe5c38313675de70da86fb",
+    "tools": [
+     {
+      "tool": "subscribers_revenue",
+      "route": "genie:subscribers_revenue",
+      "genie_space_id": "01f1dde65eb21e6b953e73d666983ab5",
+      "conversation_id": "01f1de1c42a212fd9b19a75761d9ff2e",
+      "sql": [
+       "WITH `first_signup` AS (\n  SELECT\n    `subscription`.`subscriber_id`,\n    MIN(`subscription`.`activation_date`) AS `signup_date`\n  FROM `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscription` AS `subscription`\n  WHERE `subscription`.`activation_date` IS NOT NULL\n  GROUP BY `subscription`.`subscriber_id`\n), `monthly_signups` AS (\n  SELECT\n    DATE_TRUNC('MONTH', `signup_date`) AS `month`,\n    COUNT(*) AS `new_signups`\n  FROM `first_signup`\n  WHERE `signup_date` >= DATE '2026-01-01'\n    AND `signup_date` < DATE_TRUNC('MONTH', DATE '2026-11-10')\n  GROUP BY DATE_TRUNC('MONTH', `signup_date`)\n), `trend_calc` AS (\n  SELECT\n    FIRST_VALUE(`new_signups`) OVER (ORDER BY `month`) AS `first_month_signups`,\n    LAST_VALUE(`new_signups`) OVER (ORDER BY `month` ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS `last_month_signups`\n  FROM `monthly_signups`\n)\nSELECT\n  `m`.`month`,\n  `m`.`new_signups`,\n  CASE\n    WHEN ABS(100 * (try_divide((MAX(`t`.`last_month_signups`) - MAX(`t`.`first_month_signups`)),MAX(`t`.`first_month_signups`)))) < 5 THEN 'Flat'\n    WHEN MAX(`t`.`last_month_signups`) > MAX(`t`.`first_month_signups`) THEN 'Up'\n    ELSE 'Down'\n  END AS `trend_direction`,\n  100 * (try_divide((MAX(`t`.`last_month_signups`) - MAX(`t`.`first_month_signups`)),MAX(`t`.`first_month_signups`))) AS `pct_change_first_to_last_full_month`\nFROM `monthly_signups` AS `m`\nCROSS JOIN `trend_calc` AS `t`\nGROUP BY `m`.`month`, `m`.`new_signups`\nORDER BY `m`.`month`"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cs07": [
+   {
+    "trace_id": "tr-e5e3d4978bdc1034a030cc2609da1d3d",
+    "tools": [
+     {
+      "tool": "subscribers_revenue",
+      "route": "genie:subscribers_revenue",
+      "genie_space_id": "01f1dde65eb21e6b953e73d666983ab5",
+      "conversation_id": "01f1de1c439414998bbb24ebc734690d",
+      "sql": [
+       "WITH `monthly_paid_churn` AS (\n  SELECT\n    DATE_TRUNC('MONTH', `churn_event`.`churn_timestamp`) AS `month`,\n    COUNT(*) AS `paid_subs_lost`\n  FROM `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`churn_event` AS `churn_event`\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscription` AS `subscription`\n    ON `churn_event`.`subscription_id` = `subscription`.`subscription_id`\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscription_plan` AS `subscription_plan`\n    ON `subscription`.`subscription_plan_id` = `subscription_plan`.`subscription_plan_id`\n  WHERE `subscription_plan`.`plan_type` = 'Paid'\n    AND `churn_event`.`churn_timestamp` >= TIMESTAMP('2026-04-01')\n    AND `churn_event`.`churn_timestamp` < TIMESTAMP('2026-07-01')\n  GROUP BY DATE_TRUNC('MONTH', `churn_event`.`churn_timestamp`)\n), `pivoted` AS (\n  SELECT\n    MAX(CASE WHEN `month` = TIMESTAMP('2026-04-01 00:00:00') THEN `paid_subs_lost` END) AS `april_paid_subs_lost`,\n    MAX(CASE WHEN `month` = TIMESTAMP('2026-05-01 00:00:00') THEN `paid_subs_lost` END) AS `may_paid_subs_lost`,\n    MAX(CASE WHEN `month` = TIMESTAMP('2026-06-01 00:00:00') THEN `paid_subs_lost` END) AS `june_paid_subs_lost`\n  FROM `monthly_paid_churn`\n)\nSELECT\n  `april_paid_subs_lost`,\n  `may_paid_subs_lost`,\n  `june_paid_subs_lost`,\n  `may_paid_subs_lost` - `april_paid_subs_lost` AS `may_vs_april_difference`,\n  `june_paid_subs_lost` - `april_paid_subs_lost` AS `june_vs_april_difference`\nFROM `pivoted`"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.churn_event",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription_plan"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cs08": [
+   {
+    "trace_id": "tr-f29ce358694a83c7e50d2e024f922c9f",
+    "tools": [
+     {
+      "tool": "subscribers_revenue",
+      "route": "genie:subscribers_revenue",
+      "genie_space_id": "01f1dde65eb21e6b953e73d666983ab5",
+      "conversation_id": "01f1de1c441d1913be1d5a71db241d5c",
+      "sql": [
+       "SELECT `churn_event`.`cancellation_reason_description` AS `churn_reason`, COUNT(*) AS `cancellations`\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`churn_event` AS `churn_event`\nJOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscriber` AS `subscriber`\n  ON `churn_event`.`subscriber_id` = `subscriber`.`subscriber_id`\nJOIN `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`territory` AS `territory`\n  ON `subscriber`.`territory_id` = `territory`.`territory_id`\nWHERE `territory`.`territory_group` = 'LATAM'\n  AND `churn_event`.`cancellation_reason_description` IS NOT NULL\n  AND `churn_event`.`churn_timestamp` >= add_months(DATE '2026-11-09', -6)\n  AND `churn_event`.`churn_timestamp` < TIMESTAMP(date_add(DATE '2026-11-09', 1))\nGROUP BY `churn_event`.`cancellation_reason_description`\nORDER BY `cancellations` DESC, `churn_reason` ASC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.territory",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.churn_event",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cs09": [
+   {
+    "trace_id": "tr-2ef633de06c38eaf31c74542f267d76a",
+    "tools": [
+     {
+      "tool": "subscribers_revenue",
+      "route": "genie:subscribers_revenue",
+      "genie_space_id": "01f1dde65eb21e6b953e73d666983ab5",
+      "conversation_id": "01f1de1c4d8f1864afe66a0de0acb777",
+      "sql": [
+       "WITH `method_stats` AS (\n  SELECT\n    `method_type`,\n    SUM(CASE WHEN `payment_status` = 'Failed' THEN 1 ELSE 0 END) AS `failed_payments`,\n    COUNT(*) AS `total_payments`,\n    try_divide(SUM(CASE WHEN `payment_status` = 'Failed' THEN 1 ELSE 0 END) * 1.0,COUNT(*)) AS `failure_rate`\n  FROM `serverless_lakebase_praneeth_catalog`.`hoshi_billing`.`payment`\n  WHERE `method_type` IS NOT NULL\n  GROUP BY `method_type`\n), `ranked` AS (\n  SELECT\n    `method_type`,\n    `failed_payments`,\n    `total_payments`,\n    `failure_rate`,\n    RANK() OVER (ORDER BY `failed_payments` DESC, `failure_rate` DESC, `total_payments` DESC) AS `failure_rank`\n  FROM `method_stats`\n)\nSELECT\n  `method_type`,\n  `failed_payments`,\n  `total_payments`,\n  `failure_rate`\nFROM `ranked`\nWHERE `failure_rank` = 1"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_billing.payment"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cs10": [
+   {
+    "trace_id": "tr-1ed57d63f87281fca40c68138ec3f3bf",
+    "tools": [
+     {
+      "tool": "subscribers_revenue",
+      "route": "genie:subscribers_revenue",
+      "genie_space_id": "01f1dde65eb21e6b953e73d666983ab5",
+      "conversation_id": "01f1de1c517e1dd8b45b376d6d09f671",
+      "sql": [
+       "SELECT ROUND(SUM(`amount`), 2) AS `total_refunded_2026_ytd`, COUNT(*) AS `processed_refund_count`\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_billing`.`refund`\nWHERE `refund_status` = 'Processed'\n  AND `processing_date` IS NOT NULL\n  AND `processing_date` >= DATE'2026-01-01'\n  AND `processing_date` <= DATE'2026-11-09'"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_billing.refund"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cs11": [
+   {
+    "trace_id": "tr-03ec7b942461688b5ca0c5241198559c",
+    "tools": [
+     {
+      "tool": "subscribers_revenue",
+      "route": "genie:subscribers_revenue",
+      "genie_space_id": "01f1dde65eb21e6b953e73d666983ab5",
+      "conversation_id": "01f1de1c53431bd29703de51c6b96232",
+      "sql": [
+       "WITH paying_subs AS (\n  SELECT DISTINCT\n    `subscription`.`subscriber_id`,\n    `subscription`.`subscription_type`\n  FROM `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscription` AS `subscription`\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscription_plan` AS `subscription_plan`\n    ON `subscription`.`subscription_plan_id` = `subscription_plan`.`subscription_plan_id`\n  WHERE `subscription`.`subscription_status` = 'Active'\n    AND `subscription_plan`.`plan_type` = 'Paid'\n    AND `subscription`.`subscription_type` IS NOT NULL\n    AND `subscription`.`subscription_type` IN ('Annual', 'Monthly')\n), total_paying AS (\n  SELECT COUNT(DISTINCT `subscriber_id`) AS `total_subscribers`\n  FROM paying_subs\n)\nSELECT\n  `subscription_type`,\n  COUNT(DISTINCT `subscriber_id`) AS `paying_subscribers`,\n  try_divide(100.0 * COUNT(DISTINCT `subscriber_id`),MAX(`total_subscribers`)) AS `percent_of_paying_subscribers`\nFROM paying_subs\nCROSS JOIN total_paying\nGROUP BY `subscription_type`\nORDER BY `percent_of_paying_subscribers` DESC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription_plan"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cs12": [
+   {
+    "trace_id": "tr-0b79f7145826f670830e9cf809e7cfae",
+    "tools": [
+     {
+      "tool": "subscribers_revenue",
+      "route": "genie:subscribers_revenue",
+      "genie_space_id": "01f1dde65eb21e6b953e73d666983ab5",
+      "conversation_id": "01f1de1c53a616efa742127ab97c41ba",
+      "sql": [
+       "WITH `paid_start` AS (\n  SELECT\n    `s`.`subscriber_id`,\n    MIN(`s`.`activation_date`) AS `first_paid_activation_date`\n  FROM `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscription` AS `s`\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscription_plan` AS `sp`\n    ON `s`.`subscription_plan_id` = `sp`.`subscription_plan_id`\n  WHERE `sp`.`plan_type` = 'Paid'\n    AND `s`.`activation_date` IS NOT NULL\n  GROUP BY `s`.`subscriber_id`\n)\nSELECT COUNT(DISTINCT `ps`.`subscriber_id`) AS `free_to_paid_subscribers`\nFROM `paid_start` AS `ps`\nWHERE EXISTS (\n  SELECT 1\n  FROM `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscription` AS `s2`\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscription_plan` AS `sp2`\n    ON `s2`.`subscription_plan_id` = `sp2`.`subscription_plan_id`\n  WHERE `s2`.`subscriber_id` = `ps`.`subscriber_id`\n    AND `sp2`.`plan_type` = 'Free'\n    AND `s2`.`activation_date` IS NOT NULL\n    AND `s2`.`activation_date` < `ps`.`first_paid_activation_date`\n);"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription_plan"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cc01": [
+   {
+    "trace_id": "tr-3a6dbf1a6cce1626f82fad3f27f4bee5",
+    "tools": [
+     {
+      "tool": "content_viewing",
+      "route": "genie:content_viewing",
+      "genie_space_id": "01f1dde696261db5abb090abe62771cf",
+      "conversation_id": "01f1de1c5a051d68925c2f971870f8d9",
+      "sql": [
+       "WITH `title_watch_hours` AS (\n  SELECT\n    `title`.`title_id`,\n    `title`.`name` AS `title_name`,\n    try_divide(SUM(`playback_session`.`total_watch_duration_seconds`),3600.0) AS `watch_hours`\n  FROM `serverless_lakebase_praneeth_catalog`.`hoshi_distribution`.`playback_session` AS `playback_session`\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`content_episode` AS `content_episode`\n    ON `playback_session`.`content_episode_id` = `content_episode`.`content_episode_id`\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`title` AS `title`\n    ON `content_episode`.`title_id` = `title`.`title_id`\n  WHERE `title`.`title_id` IS NOT NULL\n    AND `title`.`name` IS NOT NULL\n  GROUP BY `title`.`title_id`, `title`.`name`\n), `ranked_titles` AS (\n  SELECT\n    `title_id`,\n    `title_name`,\n    `watch_hours`,\n    RANK() OVER (ORDER BY `watch_hours` DESC) AS `watch_hours_rank`\n  FROM `title_watch_hours`\n)\nSELECT\n  `title_id`,\n  `title_name`,\n  `watch_hours`\nFROM `ranked_titles`\nWHERE `watch_hours_rank` = 1\nORDER BY `watch_hours` DESC, `title_id` ASC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_content.content_episode",
+       "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+       "serverless_lakebase_praneeth_catalog.hoshi_distribution.playback_session"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cc02": [
+   {
+    "trace_id": "tr-437e36a6ec5a4ef5a436b5d332b8b76d",
+    "tools": [
+     {
+      "tool": "content_viewing",
+      "route": "genie:content_viewing",
+      "genie_space_id": "01f1dde696261db5abb090abe62771cf",
+      "conversation_id": "01f1de1c5e1817fcbd4f11b8b316fd4a",
+      "sql": [
+       "WITH `genre_hours` AS (\n  SELECT\n    `genre`.`genre_id`,\n    `genre`.`name` AS `genre_name`,\n    try_divide(SUM(`playback_session`.`total_watch_duration_seconds`),3600.0) AS `watch_hours`\n  FROM `serverless_lakebase_praneeth_catalog`.`hoshi_distribution`.`playback_session` AS `playback_session`\n  INNER JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`content_episode` AS `content_episode`\n    ON `playback_session`.`content_episode_id` = `content_episode`.`content_episode_id`\n  INNER JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`title` AS `title`\n    ON `content_episode`.`title_id` = `title`.`title_id`\n  INNER JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`series` AS `series`\n    ON `title`.`series_id` = `series`.`series_id`\n  INNER JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`genre` AS `genre`\n    ON `series`.`genre_id` = `genre`.`genre_id`\n  WHERE `genre`.`name` IS NOT NULL\n  GROUP BY `genre`.`genre_id`, `genre`.`name`\n),\n`ranked_genres` AS (\n  SELECT\n    `genre_id`,\n    `genre_name`,\n    `watch_hours`,\n    RANK() OVER (ORDER BY `watch_hours` DESC) AS `genre_rank`\n  FROM `genre_hours`\n)\nSELECT\n  `genre_id`,\n  `genre_name`,\n  `watch_hours`\nFROM `ranked_genres`\nWHERE `genre_rank` <= 5\nORDER BY `watch_hours` DESC, `genre_name` ASC;"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_content.content_episode",
+       "serverless_lakebase_praneeth_catalog.hoshi_content.genre",
+       "serverless_lakebase_praneeth_catalog.hoshi_content.series",
+       "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+       "serverless_lakebase_praneeth_catalog.hoshi_distribution.playback_session"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cc03": [
+   {
+    "trace_id": "tr-01f587c8fff629500103418dfa885b7b",
+    "tools": [
+     {
+      "tool": "content_viewing",
+      "route": "genie:content_viewing",
+      "genie_space_id": "01f1dde696261db5abb090abe62771cf",
+      "conversation_id": "01f1de1c5f5012aea6964fcb4f07fcb1",
+      "sql": [
+       "SELECT try_divide(100.0 * SUM(CASE WHEN `series`.`title` = 'Moonlit Blade' THEN `playback_session`.`total_watch_duration_seconds` ELSE 0 END),SUM(`playback_session`.`total_watch_duration_seconds`)) AS `watch_time_share_percent`\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_distribution`.`playback_session` AS `playback_session`\nJOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`content_episode` AS `content_episode`\n  ON `playback_session`.`content_episode_id` = `content_episode`.`content_episode_id`\nJOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`title` AS `title`\n  ON `content_episode`.`title_id` = `title`.`title_id`\nJOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`series` AS `series`\n  ON `title`.`series_id` = `series`.`series_id`"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_content.content_episode",
+       "serverless_lakebase_praneeth_catalog.hoshi_content.series",
+       "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+       "serverless_lakebase_praneeth_catalog.hoshi_distribution.playback_session"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cc04": [
+   {
+    "trace_id": "tr-ad3ff090a5c8f1b534ea387f6ef1c16d",
+    "tools": [
+     {
+      "tool": "content_viewing",
+      "route": "genie:content_viewing",
+      "genie_space_id": "01f1dde696261db5abb090abe62771cf",
+      "conversation_id": "01f1de1c6038129c82394a2879010db0",
+      "sql": [
+       "WITH watch_time AS (\n  SELECT\n    CASE WHEN `title`.`is_simulcast` = true THEN 'Simulcast' ELSE 'Back catalog' END AS `content_bucket`,\n    try_divide(SUM(`playback_session`.`total_watch_duration_seconds`),3600.0) AS `watch_hours`\n  FROM `serverless_lakebase_praneeth_catalog`.`hoshi_distribution`.`playback_session` AS `playback_session`\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`content_episode` AS `content_episode`\n    ON `playback_session`.`content_episode_id` = `content_episode`.`content_episode_id`\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`title` AS `title`\n    ON `content_episode`.`title_id` = `title`.`title_id`\n  GROUP BY CASE WHEN `title`.`is_simulcast` = true THEN 'Simulcast' ELSE 'Back catalog' END\n)\nSELECT\n  `content_bucket`,\n  `watch_hours`,\n  try_divide(`watch_hours`,SUM(`watch_hours`) OVER ()) AS `watch_time_share`\nFROM `watch_time`\nORDER BY `watch_hours` DESC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_content.content_episode",
+       "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+       "serverless_lakebase_praneeth_catalog.hoshi_distribution.playback_session"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cc05": [
+   {
+    "trace_id": "tr-d5a975ce0b235d4fb8f3806c845bf239",
+    "tools": [
+     {
+      "tool": "content_viewing",
+      "route": "genie:content_viewing",
+      "genie_space_id": "01f1dde696261db5abb090abe62771cf",
+      "conversation_id": "01f1de1c679b1acf9448e6ca2dc9e4d6",
+      "sql": [
+       "SELECT\n  `territory`.`territory_group` AS `region`,\n  CASE\n    WHEN `playback_session`.`audio_language` <> 'Japanese' THEN 'Dubbed'\n    WHEN `playback_session`.`audio_language` = 'Japanese' THEN 'Subtitled/Original'\n  END AS `viewing_type`,\n  COUNT(`playback_session`.`playback_session_id`) AS `sessions`,\n  try_divide(COUNT(`playback_session`.`playback_session_id`) * 100.0,SUM(COUNT(`playback_session`.`playback_session_id`)) OVER (PARTITION BY `territory`.`territory_group`)) AS `session_share_percent`\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_distribution`.`playback_session` AS `playback_session`\nJOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscriber` AS `subscriber`\n  ON `playback_session`.`subscriber_id` = `subscriber`.`subscriber_id`\nJOIN `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`territory` AS `territory`\n  ON `subscriber`.`territory_id` = `territory`.`territory_id`\nWHERE `territory`.`territory_group` IS NOT NULL\n  AND `playback_session`.`audio_language` IS NOT NULL\nGROUP BY\n  `territory`.`territory_group`,\n  CASE\n    WHEN `playback_session`.`audio_language` <> 'Japanese' THEN 'Dubbed'\n    WHEN `playback_session`.`audio_language` = 'Japanese' THEN 'Subtitled/Original'\n  END\nORDER BY `region`, `sessions` DESC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_distribution.playback_session",
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.territory",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cc06": [
+   {
+    "trace_id": "tr-37b587379d0fdaa701927e27b05b28f1",
+    "tools": [
+     {
+      "tool": "content_viewing",
+      "route": "genie:content_viewing",
+      "genie_space_id": "01f1dde696261db5abb090abe62771cf",
+      "conversation_id": "01f1de1c6d2a143ea4bda8ebf84518bb",
+      "sql": [
+       "WITH `device_sessions` AS (\n  SELECT\n    `playback_session`.`platform_type` AS `device`,\n    COUNT(`playback_session`.`playback_session_id`) AS `sessions`\n  FROM `serverless_lakebase_praneeth_catalog`.`hoshi_distribution`.`playback_session` AS `playback_session`\n  WHERE `playback_session`.`platform_type` IS NOT NULL\n  GROUP BY `playback_session`.`platform_type`\n), `ranked_devices` AS (\n  SELECT\n    `device_sessions`.`device`,\n    `device_sessions`.`sessions`,\n    RANK() OVER (ORDER BY `device_sessions`.`sessions` DESC) AS `device_rank`\n  FROM `device_sessions`\n)\nSELECT\n  `ranked_devices`.`device`,\n  `ranked_devices`.`sessions`\nFROM `ranked_devices`\nWHERE `ranked_devices`.`device_rank` = 1\nORDER BY `ranked_devices`.`sessions` DESC, `ranked_devices`.`device` ASC;"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_distribution.playback_session"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cc07": [
+   {
+    "trace_id": "tr-f073bc2db78b8a256ae20405d9026939",
+    "tools": [
+     {
+      "tool": "content_viewing",
+      "route": "genie:content_viewing",
+      "genie_space_id": "01f1dde696261db5abb090abe62771cf",
+      "conversation_id": "01f1de1c6d101c54936d41d5f5b5680d",
+      "sql": [
+       "SELECT COUNT(`playback_session_id`) AS `sessions`\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_distribution`.`playback_session`\nWHERE `session_start_timestamp` >= TIMESTAMP('2026-10-01 00:00:00')\n  AND `session_start_timestamp` < TIMESTAMP('2026-11-01 00:00:00')"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_distribution.playback_session"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cc08": [
+   {
+    "trace_id": "tr-9049e174a7c5682ba4e8b34f16c80e79",
+    "tools": [
+     {
+      "tool": "content_viewing",
+      "route": "genie:content_viewing",
+      "genie_space_id": "01f1dde696261db5abb090abe62771cf",
+      "conversation_id": "01f1de1c6e1a14c2af27dcde9df176c6",
+      "sql": [
+       "WITH monthly_viewing AS (\n  SELECT\n    DATE_TRUNC('MONTH', `session_start_timestamp`) AS `month`,\n    try_divide(SUM(`total_watch_duration_seconds`),3600.0) AS `watch_hours`,\n    COUNT(`playback_session_id`) AS `sessions`\n  FROM `serverless_lakebase_praneeth_catalog`.`hoshi_distribution`.`playback_session`\n  WHERE `session_start_timestamp` IS NOT NULL\n    AND `session_start_timestamp` >= TIMESTAMP '2026-01-01 00:00:00'\n    AND `session_start_timestamp` < TIMESTAMP '2027-01-01 00:00:00'\n  GROUP BY DATE_TRUNC('MONTH', `session_start_timestamp`)\n)\nSELECT\n  `month`,\n  `watch_hours`,\n  `sessions`,\n  RANK() OVER (ORDER BY `watch_hours` DESC) AS `watch_hours_rank`,\n  RANK() OVER (ORDER BY `sessions` DESC) AS `sessions_rank`\nFROM monthly_viewing\nORDER BY `month` ASC;"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_distribution.playback_session"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cc09": [
+   {
+    "trace_id": "tr-06ac9e60571be02f700bf1521284dada",
+    "tools": [
+     {
+      "tool": "content_viewing",
+      "route": "genie:content_viewing",
+      "genie_space_id": "01f1dde696261db5abb090abe62771cf",
+      "conversation_id": "01f1de1c76d717328ed92d70e70e6c9c",
+      "sql": [
+       "SELECT\n  `content_type`,\n  COUNT(*) AS `titles`\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`title`\nWHERE `content_type` IS NOT NULL\nGROUP BY `content_type`\nORDER BY `titles` DESC, `content_type`"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_content.title"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cc10": [
+   {
+    "trace_id": "tr-a0207a8154e0a362f26a075de6a981f1",
+    "tools": [
+     {
+      "tool": "content_viewing",
+      "route": "genie:content_viewing",
+      "genie_space_id": "01f1dde696261db5abb090abe62771cf",
+      "conversation_id": "01f1de1c781f1cd49d23a294cef243fb",
+      "sql": [
+       "SELECT CASE WHEN `title`.`is_simulcast` = true THEN 'Simulcast' ELSE 'Everything else' END AS `content_group`, AVG(`playback_session`.`completion_percentage`) AS `completion_rate`\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_distribution`.`playback_session` AS `playback_session`\nJOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`content_episode` AS `content_episode`\n  ON `playback_session`.`content_episode_id` = `content_episode`.`content_episode_id`\nJOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`title` AS `title`\n  ON `content_episode`.`title_id` = `title`.`title_id`\nGROUP BY CASE WHEN `title`.`is_simulcast` = true THEN 'Simulcast' ELSE 'Everything else' END\nORDER BY `content_group`"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_content.content_episode",
+       "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+       "serverless_lakebase_praneeth_catalog.hoshi_distribution.playback_session"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cc11": [
+   {
+    "trace_id": "tr-cd3da4568e001e927cb77117a84f8955",
+    "tools": [
+     {
+      "tool": "content_viewing",
+      "route": "genie:content_viewing",
+      "genie_space_id": "01f1dde696261db5abb090abe62771cf",
+      "conversation_id": "01f1de1c786010059b2b8e4499cb9b15",
+      "sql": [
+       "SELECT\n  playback_session.playback_mode,\n  try_divide(SUM(playback_session.total_watch_duration_seconds),3600.0) AS watch_hours,\n  try_divide(100.0 * SUM(playback_session.total_watch_duration_seconds),SUM(SUM(playback_session.total_watch_duration_seconds)) OVER ()) AS viewing_share_percent\nFROM serverless_lakebase_praneeth_catalog.hoshi_distribution.playback_session\nWHERE playback_session.playback_mode IS NOT NULL\n  AND playback_session.playback_mode IN ('Download', 'Streaming')\nGROUP BY playback_session.playback_mode\nORDER BY viewing_share_percent DESC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_distribution.playback_session"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cc12": [
+   {
+    "trace_id": "tr-c396cd42ca847ab4c21b90030c43f84d",
+    "tools": [
+     {
+      "tool": "content_viewing",
+      "route": "genie:content_viewing",
+      "genie_space_id": "01f1dde696261db5abb090abe62771cf",
+      "conversation_id": "01f1de1c7c901f3ea4f458b41ccf7397",
+      "sql": [
+       "SELECT try_divide(100.0 * SUM(CASE WHEN `playback_session`.`session_start_timestamp` >= CAST(`content_episode`.`vod_available_from_date` AS TIMESTAMP) AND `playback_session`.`session_start_timestamp` < dateadd(DAY, 7, CAST(`content_episode`.`vod_available_from_date` AS TIMESTAMP)) THEN 1 ELSE 0 END),COUNT(*)) AS `simulcast_episode_views_within_week_percent`\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_distribution`.`playback_session` AS `playback_session`\nJOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`content_episode` AS `content_episode`\n  ON `playback_session`.`content_episode_id` = `content_episode`.`content_episode_id`\nJOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`title` AS `title`\n  ON `content_episode`.`title_id` = `title`.`title_id`\nWHERE `title`.`is_simulcast` = true\n  AND `content_episode`.`vod_available_from_date` IS NOT NULL"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_content.content_episode",
+       "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+       "serverless_lakebase_praneeth_catalog.hoshi_distribution.playback_session"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "lt01": [
+   {
+    "trace_id": "tr-c87485991f0d2af4137bc1a8e14bf2ba",
+    "tools": [
+     {
+      "tool": "system_ai_genie_one_mcp__genie_ask",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "SELECT a.agreement_number, h.rights_holder_name AS licensor, a.agreement_type, a.territory_scope, a.exclusivity_flag, a.expiry_date, DATEDIFF(a.expiry_date, DATE'2026-11-10') AS days_left, a.total_license_fee, a.currency_code FROM `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`license_agreement` a JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`holder` h ON a.primary_license_holder_id = h.holder_id WHERE a.agreement_status = 'Active' AND a.expiry_date BETWEEN DATE'2026-11-10' AND date_add(DATE'2026-11-10', 90) ORDER BY a.expiry_date, a.agreement_number",
+       "SELECT DATE_TRUNC('MONTH', a.expiry_date) AS expiry_month, COUNT(*) AS agreements, SUM(CASE WHEN a.exclusivity_flag THEN 1 ELSE 0 END) AS exclusive, SUM(a.total_license_fee) AS total_license_fee FROM `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`license_agreement` a WHERE a.agreement_status = 'Active' AND a.expiry_date BETWEEN DATE'2026-11-10' AND date_add(DATE'2026-11-10', 90) GROUP BY ROLLUP(DATE_TRUNC('MONTH', a.expiry_date)) ORDER BY expiry_month NULLS LAST"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.holder",
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "SELECT a.agreement_number, h.rights_holder_name AS licensor, a.agreement_type, a.territory_scope, a.exclusivity_flag, a.expiry_date, DATEDIFF(a.expiry_date, DATE'2026-11-10') AS days_left, a.total_license_fee, a.currency_code\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`license_agreement` a\nJOIN `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`holder` h ON a.primary_license_holder_id = h.holder_id\nWHERE a.agreement_status = 'Active' AND a.expiry_date BETWEEN DATE'2026-11-10' AND date_add(DATE'2026-11-10', 90)\nORDER BY a.expiry_date, a.agreement_number",
+       "SELECT DATE_TRUNC('MONTH', a.expiry_date) AS expiry_month, COUNT(*) AS agreements, SUM(CASE WHEN a.exclusivity_flag THEN 1 ELSE 0 END) AS exclusive, SUM(a.total_license_fee) AS total_license_fee\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`license_agreement` a\nWHERE a.agreement_status = 'Active' AND a.expiry_date BETWEEN DATE'2026-11-10' AND date_add(DATE'2026-11-10', 90)\nGROUP BY ROLLUP(DATE_TRUNC('MONTH', a.expiry_date)) ORDER BY expiry_month NULLS LAST"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.holder",
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "lt02": [
+   {
+    "trace_id": "tr-5b3b3e070a59283a861cd58ce67ceda6",
+    "tools": [
+     {
+      "tool": "system_ai_genie_one_mcp__genie_ask",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "SELECT h.`rights_holder_name`,\n  COUNT(*) AS active_agreements,\n  SUM(la.`total_license_fee`) AS active_license_fees_usd,\n  SUM(CASE WHEN la.`effective_date` <= DATE'2026-11-10' THEN la.`total_license_fee` ELSE 0 END) AS fees_started_only_usd,\n  COUNT(DISTINCT la.`currency_code`) AS currencies\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`license_agreement` la\nJOIN `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`holder` h ON la.`primary_license_holder_id` = h.`holder_id`\nWHERE la.`agreement_status` = 'Active'\nGROUP BY h.`rights_holder_name`\nORDER BY active_license_fees_usd DESC\nLIMIT 10"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.holder",
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "lt03": [
+   {
+    "trace_id": "tr-3eda2f29083a77bebf4bcc858387e278",
+    "tools": [
+     {
+      "tool": "system_ai_genie_one_mcp__genie_ask",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "WITH t AS (SELECT h.rights_holder_name AS licensor, COUNT(*) AS overdue_statements, SUM(r.net_royalty_amount) AS overdue_net_royalty FROM `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`royalty_statement` r JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`holder` h ON r.holder_id = h.holder_id WHERE r.statement_status = 'Overdue' GROUP BY h.rights_holder_name)\nSELECT licensor, overdue_statements, overdue_net_royalty, ROUND(100*overdue_net_royalty/SUM(overdue_net_royalty) OVER (),1) AS pct_of_total, SUM(overdue_net_royalty) OVER (ORDER BY overdue_net_royalty DESC ROWS UNBOUNDED PRECEDING) AS cumulative FROM t ORDER BY overdue_net_royalty DESC LIMIT 10",
+       "SELECT statement_status, COUNT(*) AS statements, COUNT(DISTINCT holder_id) AS licensors, SUM(net_royalty_amount) AS net_royalty, MIN(statement_due_date) AS min_due, MAX(statement_due_date) AS max_due, SUM(CASE WHEN statement_due_date < DATE'2026-11-10' AND paid_timestamp IS NULL THEN 1 ELSE 0 END) AS past_due_unpaid FROM `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`royalty_statement` GROUP BY statement_status ORDER BY statement_status"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.holder",
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.royalty_statement"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "lt04": [
+   {
+    "trace_id": "tr-e8ae782c3d8296bcafc0f11a84f62607",
+    "tools": [
+     {
+      "tool": "content_viewing",
+      "route": "genie:content_viewing",
+      "genie_space_id": "01f1dde696261db5abb090abe62771cf",
+      "conversation_id": "01f1de1c89b9103fb8a199e4edd87b17",
+      "sql": [
+       "SELECT territory.territory_group,\n       COUNT(*) AS active_content_windows\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`content_episode` AS content_episode\nCROSS JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`territory` AS territory\nWHERE territory.territory_group IS NOT NULL\n  AND content_episode.vod_available_from_date IS NOT NULL\n  AND content_episode.vod_available_from_date <= DATE'2026-11-10'\n  AND (content_episode.vod_available_until_date IS NULL OR content_episode.vod_available_until_date >= DATE'2026-11-10')\nGROUP BY territory.territory_group\nORDER BY active_content_windows DESC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_content.content_episode",
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.territory"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "lt05": [
+   {
+    "trace_id": "tr-ca26e74b0d24139b3667e5886934e1be",
+    "tools": [
+     {
+      "tool": "system_ai_genie_one_mcp__genie_ask",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "WITH a AS (SELECT advertiser_id, legal_name, trade_name FROM `serverless_lakebase_praneeth_catalog`.`hoshi_sales`.`advertiser` WHERE lower(legal_name) LIKE '%larkspur%' OR lower(trade_name) LIKE '%larkspur%'), c AS (SELECT campaign_id, target_impressions FROM `serverless_lakebase_praneeth_catalog`.`hoshi_sales`.`campaign` WHERE advertiser_id IN (SELECT advertiser_id FROM a)), o AS (SELECT SUM(total_contracted_value*1000/contracted_cpm) AS ordered_impr, SUM(total_contracted_value) AS contracted_value, COUNT(*) AS order_lines FROM `serverless_lakebase_praneeth_catalog`.`hoshi_sales`.`ad_order` WHERE campaign_id IN (SELECT campaign_id FROM c)), d AS (SELECT COUNT(*) AS delivered_impr, SUM(viewable_impressions) AS viewable_impr, SUM(cpm_realized)/1000 AS delivered_value FROM `serverless_lakebase_praneeth_catalog`.`hoshi_sales`.`impression_delivery` WHERE campaign_id IN (SELECT campaign_id FROM c)) SELECT (SELECT concat_ws('; ', collect_list(trade_name)) FROM a) AS advertiser, (SELECT COUNT(*) FROM c) AS campaigns, o.order_lines, (SELECT SUM(target_impressions) FROM c) AS target_impressions, ROUND(o.ordered_impr) AS ordered_impressions, d.delivered_impr AS delivered_impressions, ROUND(d.delivered_impr/o.ordered_impr*100,1) AS delivery_pct, ROUND(o.ordered_impr-d.delivered_impr) AS shortfall_impressions, d.viewable_impr AS viewable_impressions, ROUND(d.viewable_impr/o.ordered_impr*100,1) AS viewable_vs_ordered_pct, o.contracted_value AS contracted_value_usd, ROUND(d.delivered_value,2) AS delivered_value_usd, ROUND(o.contracted_value-d.delivered_value,2) AS value_gap_usd FROM o CROSS JOIN d",
+       "WITH o AS ( SELECT campaign_id, SUM(total_contracted_value*1000/contracted_cpm) AS ordered_impr, SUM(total_contracted_value) AS contracted_value FROM `serverless_lakebase_praneeth_catalog`.`hoshi_sales`.`ad_order` GROUP BY campaign_id), d AS ( SELECT campaign_id, COUNT(*) AS delivered_impr, SUM(viewable_impressions) AS viewable_impr, SUM(cpm_realized)/1000 AS delivered_value FROM `serverless_lakebase_praneeth_catalog`.`hoshi_sales`.`impression_delivery` GROUP BY campaign_id) SELECT c.name AS campaign, c.campaign_type AS objective, c.campaign_status, c.start_date, c.end_date, ROUND(o.ordered_impr) AS ordered_impressions, COALESCE(d.delivered_impr,0) AS delivered_impressions, ROUND(COALESCE(d.delivered_impr,0)/o.ordered_impr*100,1) AS delivery_pct, COALESCE(d.viewable_impr,0) AS viewable_impressions, o.contracted_value AS contracted_value_usd, ROUND(d.delivered_value,2) AS delivered_value_usd FROM `serverless_lakebase_praneeth_catalog`.`hoshi_sales`.`campaign` c LEFT JOIN o ON o.campaign_id=c.campaign_id LEFT JOIN d ON d.campaign_id=c.campaign_id WHERE c.advertiser_id IN (SELECT advertiser_id FROM `serverless_lakebase_praneeth_catalog`.`hoshi_sales`.`advertiser` WHERE lower(legal_name) LIKE '%larkspur%' OR lower(trade_name) LIKE '%larkspur%') ORDER BY c.start_date"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.ad_order",
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.advertiser",
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.campaign",
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.impression_delivery"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "lt06": [
+   {
+    "trace_id": "tr-87c60d146f746cff035fdb7e6505597a",
+    "tools": [
+     {
+      "tool": "system_ai_genie_one_mcp__genie_ask",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "WITH mv AS (\n  SELECT `Campaign Objective` AS objective, MEASURE(`Average CPM`) AS mv_avg_cpm, MEASURE(`Impressions Delivered`) AS impressions\n  FROM serverless_lakebase_praneeth_catalog.hoshi_sales.ad_delivery_metrics GROUP BY ALL),\nraw AS (\n  SELECT c.campaign_type AS objective, AVG(d.cpm_realized) AS avg_cpm_realized,\n         SUM(d.revenue_amount)*1000/SUM(d.total_impressions_served) AS dashboard_cpm\n  FROM serverless_lakebase_praneeth_catalog.hoshi_sales.impression_delivery d\n  JOIN serverless_lakebase_praneeth_catalog.hoshi_sales.campaign c ON d.campaign_id = c.campaign_id\n  GROUP BY c.campaign_type),\ntgt AS (\n  SELECT campaign_type AS objective, AVG(target_cpm) AS avg_target_cpm, COUNT(*) AS campaigns\n  FROM serverless_lakebase_praneeth_catalog.hoshi_sales.campaign GROUP BY campaign_type)\nSELECT COALESCE(mv.objective, raw.objective) AS objective, ROUND(mv.mv_avg_cpm,2) AS average_cpm, mv.impressions,\n       ROUND(raw.avg_cpm_realized,2) AS avg_cpm_check, ROUND(raw.dashboard_cpm,2) AS dashboard_cpm,\n       ROUND(tgt.avg_target_cpm,2) AS avg_target_cpm, tgt.campaigns\nFROM mv FULL JOIN raw ON mv.objective = raw.objective\nLEFT JOIN tgt ON tgt.objective = COALESCE(mv.objective, raw.objective)\nORDER BY average_cpm DESC",
+       "WITH mv AS ( SELECT `Campaign Objective` AS objective, MEASURE(`Average CPM`) AS mv_avg_cpm, MEASURE(`Impressions Delivered`) AS impressions FROM serverless_lakebase_praneeth_catalog.hoshi_sales.ad_delivery_metrics GROUP BY ALL), raw AS ( SELECT c.campaign_type AS objective, AVG(d.cpm_realized) AS avg_cpm_realized, SUM(d.revenue_amount)*1000/SUM(d.total_impressions_served) AS dashboard_cpm FROM serverless_lakebase_praneeth_catalog.hoshi_sales.impression_delivery d JOIN serverless_lakebase_praneeth_catalog.hoshi_sales.campaign c ON d.campaign_id = c.campaign_id GROUP BY c.campaign_type), tgt AS ( SELECT campaign_type AS objective, AVG(target_cpm) AS avg_target_cpm, COUNT(*) AS campaigns FROM serverless_lakebase_praneeth_catalog.hoshi_sales.campaign GROUP BY campaign_type) SELECT COALESCE(mv.objective, raw.objective) AS objective, ROUND(mv.mv_avg_cpm,2) AS average_cpm, mv.impressions, ROUND(raw.avg_cpm_realized,2) AS avg_cpm_check, ROUND(raw.dashboard_cpm,2) AS dashboard_cpm, ROUND(tgt.avg_target_cpm,2) AS avg_target_cpm, tgt.campaigns FROM mv FULL JOIN raw ON mv.objective = raw.objective LEFT JOIN tgt ON tgt.objective = COALESCE(mv.objective, raw.objective) ORDER BY average_cpm DESC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.ad_delivery_metrics",
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.campaign",
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.impression_delivery"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "WITH mv AS (\n  SELECT `Campaign Objective` AS objective, MEASURE(`Average CPM`) AS mv_avg_cpm, MEASURE(`Impressions Delivered`) AS impressions\n  FROM serverless_lakebase_praneeth_catalog.hoshi_sales.ad_delivery_metrics GROUP BY ALL),\nraw AS (\n  SELECT c.campaign_type AS objective, AVG(d.cpm_realized) AS avg_cpm_realized,\n         SUM(d.revenue_amount)*1000/SUM(d.total_impressions_served) AS dashboard_cpm\n  FROM serverless_lakebase_praneeth_catalog.hoshi_sales.impression_delivery d\n  JOIN serverless_lakebase_praneeth_catalog.hoshi_sales.campaign c ON d.campaign_id = c.campaign_id\n  GROUP BY c.campaign_type),\ntgt AS (\n  SELECT campaign_type AS objective, AVG(target_cpm) AS avg_target_cpm, COUNT(*) AS campaigns\n  FROM serverless_lakebase_praneeth_catalog.hoshi_sales.campaign GROUP BY campaign_type)\nSELECT COALESCE(mv.objective, raw.objective) AS objective, ROUND(mv.mv_avg_cpm,2) AS average_cpm, mv.impressions,\n       ROUND(raw.avg_cpm_realized,2) AS avg_cpm_check, ROUND(raw.dashboard_cpm,2) AS dashboard_cpm,\n       ROUND(tgt.avg_target_cpm,2) AS avg_target_cpm, tgt.campaigns\nFROM mv FULL JOIN raw ON mv.objective = raw.objective\nLEFT JOIN tgt ON tgt.objective = COALESCE(mv.objective, raw.objective)\nORDER BY average_cpm DESC",
+       "WITH mv AS ( SELECT `Campaign Objective` AS objective, MEASURE(`Average CPM`) AS mv_avg_cpm, MEASURE(`Impressions Delivered`) AS impressions FROM serverless_lakebase_praneeth_catalog.hoshi_sales.ad_delivery_metrics GROUP BY ALL), raw AS ( SELECT c.campaign_type AS objective, AVG(d.cpm_realized) AS avg_cpm_realized, SUM(d.revenue_amount)*1000/SUM(d.total_impressions_served) AS dashboard_cpm FROM serverless_lakebase_praneeth_catalog.hoshi_sales.impression_delivery d JOIN serverless_lakebase_praneeth_catalog.hoshi_sales.campaign c ON d.campaign_id = c.campaign_id GROUP BY c.campaign_type), tgt AS ( SELECT campaign_type AS objective, AVG(target_cpm) AS avg_target_cpm, COUNT(*) AS campaigns FROM serverless_lakebase_praneeth_catalog.hoshi_sales.campaign GROUP BY campaign_type) SELECT COALESCE(mv.objective, raw.objective) AS objective, ROUND(mv.mv_avg_cpm,2) AS average_cpm, mv.impressions, ROUND(raw.avg_cpm_realized,2) AS avg_cpm_check, ROUND(raw.dashboard_cpm,2) AS dashboard_cpm, ROUND(tgt.avg_target_cpm,2) AS avg_target_cpm, tgt.campaigns FROM mv FULL JOIN raw ON mv.objective = raw.objective LEFT JOIN tgt ON tgt.objective = COALESCE(mv.objective, raw.objective) ORDER BY average_cpm DESC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.ad_delivery_metrics",
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.campaign",
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.impression_delivery"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "WITH mv AS (\n  SELECT `Campaign Objective` AS objective, MEASURE(`Average CPM`) AS mv_avg_cpm, MEASURE(`Impressions Delivered`) AS impressions\n  FROM serverless_lakebase_praneeth_catalog.hoshi_sales.ad_delivery_metrics GROUP BY ALL),\nraw AS (\n  SELECT c.campaign_type AS objective, AVG(d.cpm_realized) AS avg_cpm_realized,\n         SUM(d.revenue_amount)*1000/SUM(d.total_impressions_served) AS dashboard_cpm\n  FROM serverless_lakebase_praneeth_catalog.hoshi_sales.impression_delivery d\n  JOIN serverless_lakebase_praneeth_catalog.hoshi_sales.campaign c ON d.campaign_id = c.campaign_id\n  GROUP BY c.campaign_type),\ntgt AS (\n  SELECT campaign_type AS objective, AVG(target_cpm) AS avg_target_cpm, COUNT(*) AS campaigns\n  FROM serverless_lakebase_praneeth_catalog.hoshi_sales.campaign GROUP BY campaign_type)\nSELECT COALESCE(mv.objective, raw.objective) AS objective, ROUND(mv.mv_avg_cpm,2) AS average_cpm, mv.impressions,\n       ROUND(raw.avg_cpm_realized,2) AS avg_cpm_check, ROUND(raw.dashboard_cpm,2) AS dashboard_cpm,\n       ROUND(tgt.avg_target_cpm,2) AS avg_target_cpm, tgt.campaigns\nFROM mv FULL JOIN raw ON mv.objective = raw.objective\nLEFT JOIN tgt ON tgt.objective = COALESCE(mv.objective, raw.objective)\nORDER BY average_cpm DESC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.ad_delivery_metrics",
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.campaign",
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.impression_delivery"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "lt07": [
+   {
+    "trace_id": "tr-4efe4df71dcc876ec7d8fc96ca718e21",
+    "tools": [
+     {
+      "tool": "system_ai_genie_one_mcp__genie_ask",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "SELECT `industry_category`, COUNT(DISTINCT `advertiser_id`) AS advertisers,\n COUNT(DISTINCT CASE WHEN `account_status`='Active' THEN `advertiser_id` END) AS active_advertisers\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_sales`.`advertiser`\nGROUP BY `industry_category` ORDER BY advertisers DESC",
+       "SELECT COUNT(DISTINCT `advertiser_id`) AS total FROM `serverless_lakebase_praneeth_catalog`.`hoshi_sales`.`advertiser`",
+       "SELECT `industry_category`, COUNT(DISTINCT `advertiser_id`) AS advertisers, COUNT(DISTINCT CASE WHEN `account_status`='Active' THEN `advertiser_id` END) AS active_advertisers FROM `serverless_lakebase_praneeth_catalog`.`hoshi_sales`.`advertiser` GROUP BY `industry_category` ORDER BY advertisers DESC",
+       "SELECT COUNT(DISTINCT `advertiser_id`) AS total FROM `serverless_lakebase_praneeth_catalog`.`hoshi_sales`.`advertiser`"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.advertiser"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "SELECT `industry_category`, COUNT(DISTINCT `advertiser_id`) AS advertisers,\n COUNT(DISTINCT CASE WHEN `account_status`='Active' THEN `advertiser_id` END) AS active_advertisers\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_sales`.`advertiser`\nGROUP BY `industry_category` ORDER BY advertisers DESC",
+       "SELECT COUNT(DISTINCT `advertiser_id`) AS total FROM `serverless_lakebase_praneeth_catalog`.`hoshi_sales`.`advertiser`"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.advertiser"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "lt08": [
+   {
+    "trace_id": "tr-1b1ddd1af72575e5a9e6d31a55f78cd9",
+    "tools": [
+     {
+      "tool": "system_ai_genie_one_mcp__genie_ask",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "SELECT 'metric_view' AS src, MEASURE(`Impressions Delivered`) AS impressions, MEASURE(`Viewable Impressions`) AS viewable, MEASURE(`Completed Views`) AS completed\nFROM serverless_lakebase_praneeth_catalog.hoshi_sales.ad_delivery_metrics\nWHERE `Delivery Month` >= TIMESTAMP'2026-10-01' AND `Delivery Month` < TIMESTAMP'2026-11-01'\nGROUP BY ALL\nUNION ALL\nSELECT 'base_table', COUNT(*), SUM(`viewable_impressions`), SUM(`completed_views`)\nFROM serverless_lakebase_praneeth_catalog.hoshi_sales.impression_delivery\nWHERE `delivery_date` >= DATE'2026-10-01' AND `delivery_date` < DATE'2026-11-01'",
+       "SELECT 'metric_view' AS src, MEASURE(`Impressions Delivered`) AS impressions, MEASURE(`Viewable Impressions`) AS viewable, MEASURE(`Completed Views`) AS completed FROM serverless_lakebase_praneeth_catalog.hoshi_sales.ad_delivery_metrics WHERE `Delivery Month` >= TIMESTAMP'2026-10-01' AND `Delivery Month` < TIMESTAMP'2026-11-01' GROUP BY ALL UNION ALL SELECT 'base_table', COUNT(*), SUM(`viewable_impressions`), SUM(`completed_views`) FROM serverless_lakebase_praneeth_catalog.hoshi_sales.impression_delivery WHERE `delivery_date` >= DATE'2026-10-01' AND `delivery_date` < DATE'2026-11-01'"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.ad_delivery_metrics",
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.impression_delivery"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "SELECT 'metric_view' AS src, MEASURE(`Impressions Delivered`) AS impressions, MEASURE(`Viewable Impressions`) AS viewable, MEASURE(`Completed Views`) AS completed\nFROM serverless_lakebase_praneeth_catalog.hoshi_sales.ad_delivery_metrics\nWHERE `Delivery Month` >= TIMESTAMP'2026-10-01' AND `Delivery Month` < TIMESTAMP'2026-11-01'\nGROUP BY ALL\nUNION ALL\nSELECT 'base_table', COUNT(*), SUM(`viewable_impressions`), SUM(`completed_views`)\nFROM serverless_lakebase_praneeth_catalog.hoshi_sales.impression_delivery\nWHERE `delivery_date` >= DATE'2026-10-01' AND `delivery_date` < DATE'2026-11-01'"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.ad_delivery_metrics",
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.impression_delivery"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "lt09": [
+   {
+    "trace_id": "tr-a3f9762da11f3156f294e8e2a72fffa3",
+    "tools": [
+     {
+      "tool": "system_ai_genie_one_mcp__genie_ask",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "SELECT COALESCE(`mg_status`,'(all)') AS mg_status, COUNT(*) AS guarantees, SUM(`mg_amount`) AS total_mg, SUM(`recouped_to_date_amount`) AS recouped, SUM(`outstanding_balance_amount`) AS outstanding, ROUND(SUM(`outstanding_balance_amount`)/SUM(`mg_amount`)*100,1) AS pct_outstanding, SUM(CASE WHEN NOT `is_recoupable` THEN `outstanding_balance_amount` ELSE 0 END) AS outstanding_non_recoupable, COUNT(DISTINCT `currency_code`) AS currencies, SUM(`mg_amount`-`recouped_to_date_amount`-`outstanding_balance_amount`) AS recon_gap FROM `serverless_lakebase_praneeth_catalog`.`hoshi_partner`.`minimum_guarantee` GROUP BY ROLLUP(`mg_status`) ORDER BY mg_status",
+       "SELECT COALESCE(`mg_status`,'(all)') AS mg_status, COUNT(*) AS guarantees, SUM(`mg_amount`) AS total_mg, SUM(`recouped_to_date_amount`) AS recouped, SUM(`outstanding_balance_amount`) AS outstanding, ROUND(SUM(`outstanding_balance_amount`)/SUM(`mg_amount`)*100,1) AS pct_outstanding, SUM(CASE WHEN NOT `is_recoupable` THEN `outstanding_balance_amount` ELSE 0 END) AS outstanding_non_recoupable, COUNT(DISTINCT `currency_code`) AS currencies, SUM(`mg_amount`-`recouped_to_date_amount`-`outstanding_balance_amount`) AS recon_gap FROM `serverless_lakebase_praneeth_catalog`.`hoshi_partner`.`minimum_guarantee` GROUP BY ROLLUP(`mg_status`) ORDER BY mg_status"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_partner.minimum_guarantee"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "SELECT COALESCE(`mg_status`,'(all)') AS mg_status, COUNT(*) AS guarantees, SUM(`mg_amount`) AS total_mg, SUM(`recouped_to_date_amount`) AS recouped, SUM(`outstanding_balance_amount`) AS outstanding, ROUND(SUM(`outstanding_balance_amount`)/SUM(`mg_amount`)*100,1) AS pct_outstanding, SUM(CASE WHEN NOT `is_recoupable` THEN `outstanding_balance_amount` ELSE 0 END) AS outstanding_non_recoupable, COUNT(DISTINCT `currency_code`) AS currencies, SUM(`mg_amount`-`recouped_to_date_amount`-`outstanding_balance_amount`) AS recon_gap FROM `serverless_lakebase_praneeth_catalog`.`hoshi_partner`.`minimum_guarantee` GROUP BY ROLLUP(`mg_status`) ORDER BY mg_status"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_partner.minimum_guarantee"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "lt10": [
+   {
+    "trace_id": "tr-0a7bb6139b4ba772048ab3434b53ec73",
+    "tools": [
+     {
+      "tool": "system_ai_genie_one_mcp__genie_ask",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "SELECT p.`partner_id`, p.`name` AS partner, p.`partner_type`, COUNT(DISTINCT mg.`minimum_guarantee_id`) AS mg_count,\n SUM(CASE WHEN mg.`mg_status`='Recouping' THEN 1 ELSE 0 END) AS recouping_mgs,\n SUM(mg.`mg_amount`) AS total_mg_amount, SUM(mg.`recouped_to_date_amount`) AS recouped_usd,\n SUM(mg.`outstanding_balance_amount`) AS outstanding_balance_usd\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_partner`.`minimum_guarantee` mg\nJOIN `serverless_lakebase_praneeth_catalog`.`hoshi_partner`.`acquisition_deal` d ON mg.`acquisition_deal_id`=d.`acquisition_deal_id`\nJOIN `serverless_lakebase_praneeth_catalog`.`hoshi_partner`.`partner` p ON d.`partner_id`=p.`partner_id`\nGROUP BY p.`partner_id`, p.`name`, p.`partner_type`\nORDER BY outstanding_balance_usd DESC\nLIMIT 10",
+       "SELECT p.`partner_id`, p.`name` AS partner, p.`partner_type`, COUNT(DISTINCT mg.`minimum_guarantee_id`) AS mg_count, SUM(CASE WHEN mg.`mg_status`='Recouping' THEN 1 ELSE 0 END) AS recouping_mgs, SUM(mg.`mg_amount`) AS total_mg_amount, SUM(mg.`recouped_to_date_amount`) AS recouped_usd, SUM(mg.`outstanding_balance_amount`) AS outstanding_balance_usd FROM `serverless_lakebase_praneeth_catalog`.`hoshi_partner`.`minimum_guarantee` mg JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_partner`.`acquisition_deal` d ON mg.`acquisition_deal_id`=d.`acquisition_deal_id` JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_partner`.`partner` p ON d.`partner_id`=p.`partner_id` GROUP BY p.`partner_id`, p.`name`, p.`partner_type` ORDER BY outstanding_balance_usd DESC LIMIT 10"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_partner.acquisition_deal",
+       "serverless_lakebase_praneeth_catalog.hoshi_partner.minimum_guarantee",
+       "serverless_lakebase_praneeth_catalog.hoshi_partner.partner"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "lt11": [
+   {
+    "trace_id": "tr-a91f65fa139cf92cc7d1a3bdc6e594de",
+    "tools": [
+     {
+      "tool": "system_ai_genie_one_mcp__genie_ask",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "SELECT `Agreement Type`, MEASURE(`Agreement Count`) AS total_agreements, MEASURE(`Active Agreement Count`) AS active_agreements,\nROUND(100.0 * MEASURE(`Active Agreement Count`) / MEASURE(`Agreement Count`), 1) AS active_pct\nFROM serverless_lakebase_praneeth_catalog.hoshi_rights.license_metrics\nGROUP BY `Agreement Type` ORDER BY total_agreements DESC",
+       "SELECT agreement_type, COUNT(*) AS total, SUM(CASE WHEN agreement_status='Active' THEN 1 ELSE 0 END) AS status_active,\nSUM(CASE WHEN agreement_status='Active' AND expiry_date < DATE'2026-11-10' THEN 1 ELSE 0 END) AS active_but_past_expiry,\nSUM(CASE WHEN agreement_status='Active' AND effective_date > DATE'2026-11-10' THEN 1 ELSE 0 END) AS active_not_yet_started,\nSUM(CASE WHEN effective_date <= DATE'2026-11-10' AND expiry_date >= DATE'2026-11-10' THEN 1 ELSE 0 END) AS in_force_today\nFROM serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement GROUP BY agreement_type ORDER BY total DESC",
+       "SELECT `Agreement Type`, MEASURE(`Agreement Count`) AS total_agreements, MEASURE(`Active Agreement Count`) AS active_agreements, ROUND(100.0 * MEASURE(`Active Agreement Count`) / MEASURE(`Agreement Count`), 1) AS active_pct FROM serverless_lakebase_praneeth_catalog.hoshi_rights.license_metrics GROUP BY `Agreement Type` ORDER BY total_agreements DESC",
+       "SELECT agreement_type, COUNT(*) AS total, SUM(CASE WHEN agreement_status='Active' THEN 1 ELSE 0 END) AS status_active, SUM(CASE WHEN agreement_status='Active' AND expiry_date < DATE'2026-11-10' THEN 1 ELSE 0 END) AS active_but_past_expiry, SUM(CASE WHEN agreement_status='Active' AND effective_date > DATE'2026-11-10' THEN 1 ELSE 0 END) AS active_not_yet_started, SUM(CASE WHEN effective_date <= DATE'2026-11-10' AND expiry_date >= DATE'2026-11-10' THEN 1 ELSE 0 END) AS in_force_today FROM serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement GROUP BY agreement_type ORDER BY total DESC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement",
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.license_metrics"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "lt12": [
+   {
+    "trace_id": "tr-061cfd93d3b5c05a849728c37004b300",
+    "tools": [
+     {
+      "tool": "system_ai_genie_one_mcp__genie_ask",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "SELECT COUNT(*) AS statements_paid,\n  SUM(`net_royalty_amount`) AS net_paid_usd,\n  SUM(`gross_royalty_amount`) AS gross_usd,\n  SUM(`withholding_tax_amount`) AS withholding_usd,\n  SUM(CASE WHEN YEAR(`statement_period_start_date`)=2025 THEN `net_royalty_amount` END) AS net_for_2025_periods,\n  SUM(CASE WHEN YEAR(`statement_period_start_date`)=2024 THEN `net_royalty_amount` END) AS net_for_2024_periods,\n  COLLECT_SET(`currency_code`) AS currencies,\n  COLLECT_SET(`statement_status`) AS statuses\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`royalty_statement`\nWHERE `paid_timestamp` >= TIMESTAMP'2025-01-01' AND `paid_timestamp` < TIMESTAMP'2026-01-01'",
+       "SELECT COUNT(*) AS statements_paid, SUM(`net_royalty_amount`) AS net_paid_usd, SUM(`gross_royalty_amount`) AS gross_usd, SUM(`withholding_tax_amount`) AS withholding_usd, SUM(CASE WHEN YEAR(`statement_period_start_date`)=2025 THEN `net_royalty_amount` END) AS net_for_2025_periods, SUM(CASE WHEN YEAR(`statement_period_start_date`)=2024 THEN `net_royalty_amount` END) AS net_for_2024_periods, COLLECT_SET(`currency_code`) AS currencies, COLLECT_SET(`statement_status`) AS statuses FROM `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`royalty_statement` WHERE `paid_timestamp` >= TIMESTAMP'2025-01-01' AND `paid_timestamp` < TIMESTAMP'2026-01-01'"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.royalty_statement"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "SELECT COUNT(*) AS statements_paid,\n  SUM(`net_royalty_amount`) AS net_paid_usd,\n  SUM(`gross_royalty_amount`) AS gross_usd,\n  SUM(`withholding_tax_amount`) AS withholding_usd,\n  SUM(CASE WHEN YEAR(`statement_period_start_date`)=2025 THEN `net_royalty_amount` END) AS net_for_2025_periods,\n  SUM(CASE WHEN YEAR(`statement_period_start_date`)=2024 THEN `net_royalty_amount` END) AS net_for_2024_periods,\n  COLLECT_SET(`currency_code`) AS currencies,\n  COLLECT_SET(`statement_status`) AS statuses\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`royalty_statement`\nWHERE `paid_timestamp` >= TIMESTAMP'2025-01-01' AND `paid_timestamp` < TIMESTAMP'2026-01-01'"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.royalty_statement"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "lt13": [
+   {
+    "trace_id": "tr-5158116a4649afa196a47480e0860b60",
+    "tools": [
+     {
+      "tool": "system_ai_genie_one_mcp__genie_ask",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "SELECT `deal_type`, `currency_code`, COUNT(*) AS deal_count, SUM(`deal_value_amount`) AS total_deal_value, ROUND(AVG(`deal_value_amount`),2) AS avg_deal_value, COUNT(`deal_value_amount`) AS deals_with_value\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_partner`.`acquisition_deal`\nGROUP BY `deal_type`, `currency_code` ORDER BY total_deal_value DESC",
+       "SELECT `deal_type`, `currency_code`, COUNT(*) AS deal_count, SUM(`deal_value_amount`) AS total_deal_value, ROUND(AVG(`deal_value_amount`),2) AS avg_deal_value, COUNT(`deal_value_amount`) AS deals_with_value FROM `serverless_lakebase_praneeth_catalog`.`hoshi_partner`.`acquisition_deal` GROUP BY `deal_type`, `currency_code` ORDER BY total_deal_value DESC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_partner.acquisition_deal"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "lt14": [
+   {
+    "trace_id": "tr-008e8334c74ee80e0a7aa00cbaac2e09",
+    "tools": [
+     {
+      "tool": "system_ai_genie_one_mcp__genie_ask",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "SELECT `Territory Scope`, MEASURE(`Agreement Count`) AS `agreements`, ROUND(MEASURE(`Agreement Count`) * 100.0 / SUM(MEASURE(`Agreement Count`)) OVER (), 1) AS `pct_of_agreements`, MEASURE(`Active Agreement Count`) AS `active_agreements`, MEASURE(`Total License Fee`) AS `total_license_fee`\nFROM serverless_lakebase_praneeth_catalog.hoshi_rights.license_metrics\nGROUP BY ALL\nORDER BY `agreements` DESC",
+       "SELECT `territory_scope`, `currency_code`, COUNT(DISTINCT `license_agreement_id`) AS n, SUM(CASE WHEN `agreement_status`='Active' THEN 1 ELSE 0 END) AS active\nFROM serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement\nGROUP BY ALL ORDER BY `territory_scope`, n DESC",
+       "SELECT `Territory Scope`, MEASURE(`Agreement Count`) AS `agreements`, ROUND(MEASURE(`Agreement Count`) * 100.0 / SUM(MEASURE(`Agreement Count`)) OVER (), 1) AS `pct_of_agreements`, MEASURE(`Active Agreement Count`) AS `active_agreements`, MEASURE(`Total License Fee`) AS `total_license_fee` FROM serverless_lakebase_praneeth_catalog.hoshi_rights.license_metrics GROUP BY ALL ORDER BY `agreements` DESC",
+       "SELECT `territory_scope`, `currency_code`, COUNT(DISTINCT `license_agreement_id`) AS n, SUM(CASE WHEN `agreement_status`='Active' THEN 1 ELSE 0 END) AS active FROM serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement GROUP BY ALL ORDER BY `territory_scope`, n DESC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement",
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.license_metrics"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "SELECT `Territory Scope`, MEASURE(`Agreement Count`) AS `agreements`, ROUND(MEASURE(`Agreement Count`) * 100.0 / SUM(MEASURE(`Agreement Count`)) OVER (), 1) AS `pct_of_agreements`, MEASURE(`Active Agreement Count`) AS `active_agreements`, MEASURE(`Total License Fee`) AS `total_license_fee`\nFROM serverless_lakebase_praneeth_catalog.hoshi_rights.license_metrics\nGROUP BY ALL\nORDER BY `agreements` DESC",
+       "SELECT `territory_scope`, `currency_code`, COUNT(DISTINCT `license_agreement_id`) AS n, SUM(CASE WHEN `agreement_status`='Active' THEN 1 ELSE 0 END) AS active\nFROM serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement\nGROUP BY ALL ORDER BY `territory_scope`, n DESC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement",
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.license_metrics"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cd01": [
+   {
+    "trace_id": "tr-50c9eaf73e8bdd040c6fbf9a7e466aae",
+    "tools": [
+     {
+      "tool": "system_ai_genie_one_mcp__genie_ask",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "WITH at AS ( SELECT `title_id` FROM `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`title` WHERE lower(`name`) LIKE '%ashen%tempest%' ), v AS ( SELECT DISTINCT e.`title_id`, s.`territory_id` FROM `serverless_lakebase_praneeth_catalog`.`hoshi_distribution`.`playback_session` p JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`content_episode` e ON p.`content_episode_id` = e.`content_episode_id` JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscriber` s ON p.`subscriber_id` = s.`subscriber_id` WHERE e.`title_id` IN (SELECT `title_id` FROM at) ), w AS ( SELECT DISTINCT `title_id`, `territory_id` FROM `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`content_window` WHERE `title_id` IN (SELECT `title_id` FROM at) AND `window_open_date` <= DATE'2026-11-10' AND (`window_close_date` IS NULL OR `window_close_date` >= DATE'2026-11-10') ) SELECT t.`name` AS title, t.`season_number`, COUNT(*) AS viewing_countries, COUNT(w.`territory_id`) AS with_active_window, COUNT(*) - COUNT(w.`territory_id`) AS without_active_window FROM v JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`title` t ON v.`title_id` = t.`title_id` LEFT JOIN w ON v.`title_id` = w.`title_id` AND v.`territory_id` = w.`territory_id` GROUP BY t.`name`, t.`season_number` ORDER BY t.`season_number`",
+       "WITH at AS ( SELECT `title_id` FROM `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`title` WHERE lower(`name`) LIKE '%ashen%tempest%' ), v AS ( SELECT e.`title_id`, s.`territory_id`, COUNT(*) AS sessions, COUNT(DISTINCT p.`subscriber_id`) AS viewers, ROUND(SUM(p.`total_watch_duration_seconds`)/3600,1) AS watch_hours, MIN(DATE(p.`session_start_timestamp`)) AS first_view, MAX(DATE(p.`session_start_timestamp`)) AS last_view FROM `serverless_lakebase_praneeth_catalog`.`hoshi_distribution`.`playback_session` p JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`content_episode` e ON p.`content_episode_id` = e.`content_episode_id` JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscriber` s ON p.`subscriber_id` = s.`subscriber_id` WHERE e.`title_id` IN (SELECT `title_id` FROM at) GROUP BY e.`title_id`, s.`territory_id` ), w AS ( SELECT `title_id`, `territory_id`, COUNT(*) AS windows_any, SUM(CASE WHEN `window_open_date` <= DATE'2026-11-10' AND (`window_close_date` IS NULL OR `window_close_date` >= DATE'2026-11-10') THEN 1 ELSE 0 END) AS active_by_date, SUM(CASE WHEN `active_flag` THEN 1 ELSE 0 END) AS active_by_flag, SUM(CASE WHEN `window_open_date` > DATE'2026-11-10' THEN 1 ELSE 0 END) AS future_windows, MIN(`window_open_date`) AS earliest_open, MAX(`window_close_date`) AS latest_close FROM `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`content_window` WHERE `title_id` IN (SELECT `title_id` FROM at) GROUP BY `title_id`, `territory_id` ) SELECT t.`name` AS title, t.`season_number`, tr.`name` AS country, tr.`territory_group` AS region, v.sessions, v.viewers, v.watch_hours, v.first_view, v.last_view, CASE WHEN w.windows_any IS NULL THEN 'No window ever' WHEN w.future_windows > 0 THEN CONCAT('Future window opens ', CAST(w.earliest_open AS STRING)) ELSE CONCAT('Expired window ', CAST(w.earliest_open AS STRING), ' to ', CAST(w.latest_close AS STRING)) END AS rights_status, COALESCE(w.active_by_flag,0) AS active_flag_windows FROM v JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`title` t ON v.`title_id` = t.`title_id` LEFT JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`territory` tr ON v.`territory_id` = tr.`territory_id` LEFT JOIN w ON v.`title_id` = w.`title_id` AND v.`territory_id` = w.`territory_id` WHERE COALESCE(w.active_by_date,0) = 0 ORDER BY t.`season_number`, v.sessions DESC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_content.content_episode",
+       "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+       "serverless_lakebase_praneeth_catalog.hoshi_distribution.playback_session",
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.content_window",
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.territory",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cd02": [
+   {
+    "trace_id": "tr-483bf4a074f734fe5d33d939336c6740",
+    "tools": [
+     {
+      "tool": "system_ai_genie_one_mcp__genie_ask",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "WITH f AS (\n  SELECT COALESCE(s.`franchise_name`,'(no franchise / unmatched)') AS franchise, i.`viewable_impressions`, i.`cpm_realized`\n  FROM `serverless_lakebase_praneeth_catalog`.`hoshi_sales`.`impression_delivery` i\n  LEFT JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`content_episode` e ON i.`content_episode_id` = e.`content_episode_id`\n  LEFT JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`title` t ON e.`title_id` = t.`title_id`\n  LEFT JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`series` s ON t.`series_id` = s.`series_id`\n), agg AS (\n  SELECT franchise, COUNT(*) AS impressions, SUM(`viewable_impressions`) AS viewable_impressions,\n         ROUND(SUM(`cpm_realized`)/1000,2) AS ad_revenue_usd\n  FROM f GROUP BY franchise\n)\nSELECT franchise, impressions, ROUND(100*impressions/SUM(impressions) OVER (),1) AS pct_of_all_impressions,\n       viewable_impressions, ad_revenue_usd,\n       SUM(impressions) OVER () AS total_impressions, COUNT(*) OVER () AS franchise_count\nFROM agg ORDER BY impressions DESC LIMIT 7",
+       "WITH f AS ( SELECT COALESCE(s.`franchise_name`,'(no franchise / unmatched)') AS franchise, i.`viewable_impressions`, i.`cpm_realized` FROM `serverless_lakebase_praneeth_catalog`.`hoshi_sales`.`impression_delivery` i LEFT JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`content_episode` e ON i.`content_episode_id` = e.`content_episode_id` LEFT JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`title` t ON e.`title_id` = t.`title_id` LEFT JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`series` s ON t.`series_id` = s.`series_id` ), agg AS ( SELECT franchise, COUNT(*) AS impressions, SUM(`viewable_impressions`) AS viewable_impressions, ROUND(SUM(`cpm_realized`)/1000,2) AS ad_revenue_usd FROM f GROUP BY franchise ) SELECT franchise, impressions, ROUND(100*impressions/SUM(impressions) OVER (),1) AS pct_of_all_impressions, viewable_impressions, ad_revenue_usd, SUM(impressions) OVER () AS total_impressions, COUNT(*) OVER () AS franchise_count FROM agg ORDER BY impressions DESC LIMIT 7",
+       "SELECT ROUND(100.0*(27715+16420+13684+12260+11315)/300024,1) AS top5_pct, ROUND(27715/16420,2) AS ratio_1_to_2"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_content.content_episode",
+       "serverless_lakebase_praneeth_catalog.hoshi_content.series",
+       "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.impression_delivery"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "WITH f AS (\n  SELECT COALESCE(s.`franchise_name`,'(no franchise / unmatched)') AS franchise, i.`viewable_impressions`, i.`cpm_realized`\n  FROM `serverless_lakebase_praneeth_catalog`.`hoshi_sales`.`impression_delivery` i\n  LEFT JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`content_episode` e ON i.`content_episode_id` = e.`content_episode_id`\n  LEFT JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`title` t ON e.`title_id` = t.`title_id`\n  LEFT JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`series` s ON t.`series_id` = s.`series_id`\n), agg AS (\n  SELECT franchise, COUNT(*) AS impressions, SUM(`viewable_impressions`) AS viewable_impressions,\n         ROUND(SUM(`cpm_realized`)/1000,2) AS ad_revenue_usd\n  FROM f GROUP BY franchise\n)\nSELECT franchise, impressions, ROUND(100*impressions/SUM(impressions) OVER (),1) AS pct_of_all_impressions,\n       viewable_impressions, ad_revenue_usd,\n       SUM(impressions) OVER () AS total_impressions, COUNT(*) OVER () AS franchise_count\nFROM agg ORDER BY impressions DESC LIMIT 7",
+       "SELECT ROUND(100.0*(27715+16420+13684+12260+11315)/300024,1) AS top5_pct, ROUND(27715/16420,2) AS ratio_1_to_2"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_content.content_episode",
+       "serverless_lakebase_praneeth_catalog.hoshi_content.series",
+       "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.impression_delivery"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cd03": [
+   {
+    "trace_id": "tr-0f401be7cc0ec1f60c7471bd27157e46",
+    "tools": [
+     {
+      "tool": "system_ai_genie_one_mcp__genie_ask",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "SELECT COALESCE(t.`territory_group`,'Unassigned') AS region,\n  COUNT(*) AS impressions,\n  ROUND(100*COUNT(*)/SUM(COUNT(*)) OVER (),1) AS pct_of_total,\n  ROUND(100*SUM(i.`viewable_impressions`)/COUNT(*),1) AS viewability_pct,\n  ROUND(AVG(i.`cpm_realized`),2) AS avg_cpm_usd,\n  ROUND(SUM(i.`cpm_realized`)/1000,2) AS ad_revenue_usd\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_sales`.`impression_delivery` i\nLEFT JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscriber` s ON i.`subscriber_id`=s.`subscriber_id`\nLEFT JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`territory` t ON s.`territory_id`=t.`territory_id`\nWHERE i.`delivery_date` >= DATE'2026-07-01' AND i.`delivery_date` < DATE'2026-10-01'\nGROUP BY 1 ORDER BY impressions DESC",
+       "SELECT COALESCE(t.`territory_group`,'Unassigned') AS region, COUNT(*) AS impressions, ROUND(100*COUNT(*)/SUM(COUNT(*)) OVER (),1) AS pct_of_total, ROUND(100*SUM(i.`viewable_impressions`)/COUNT(*),1) AS viewability_pct, ROUND(AVG(i.`cpm_realized`),2) AS avg_cpm_usd, ROUND(SUM(i.`cpm_realized`)/1000,2) AS ad_revenue_usd FROM `serverless_lakebase_praneeth_catalog`.`hoshi_sales`.`impression_delivery` i LEFT JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscriber` s ON i.`subscriber_id`=s.`subscriber_id` LEFT JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`territory` t ON s.`territory_id`=t.`territory_id` WHERE i.`delivery_date` >= DATE'2026-07-01' AND i.`delivery_date` < DATE'2026-10-01' GROUP BY 1 ORDER BY impressions DESC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.territory",
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.impression_delivery",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "SELECT COALESCE(t.`territory_group`,'Unassigned') AS region,\n  COUNT(*) AS impressions,\n  ROUND(100*COUNT(*)/SUM(COUNT(*)) OVER (),1) AS pct_of_total,\n  ROUND(100*SUM(i.`viewable_impressions`)/COUNT(*),1) AS viewability_pct,\n  ROUND(AVG(i.`cpm_realized`),2) AS avg_cpm_usd,\n  ROUND(SUM(i.`cpm_realized`)/1000,2) AS ad_revenue_usd\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_sales`.`impression_delivery` i\nLEFT JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscriber` s ON i.`subscriber_id`=s.`subscriber_id`\nLEFT JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`territory` t ON s.`territory_id`=t.`territory_id`\nWHERE i.`delivery_date` >= DATE'2026-07-01' AND i.`delivery_date` < DATE'2026-10-01'\nGROUP BY 1 ORDER BY impressions DESC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.territory",
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.impression_delivery",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cd04": [
+   {
+    "trace_id": "tr-9aef366d82e55fa2986cde5cb8036397",
+    "tools": [
+     {
+      "tool": "system_ai_genie_one_mcp__genie_ask",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "WITH watch AS ( SELECT e.`title_id`, SUM(p.`total_watch_duration_seconds`)/3600.0 AS watch_hours, COUNT(*) AS sessions FROM `serverless_lakebase_praneeth_catalog`.`hoshi_distribution`.`playback_session` p JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`content_episode` e ON p.`content_episode_id` = e.`content_episode_id` GROUP BY e.`title_id` ), top20 AS ( SELECT *, ROW_NUMBER() OVER (ORDER BY watch_hours DESC) AS rnk FROM watch QUALIFY rnk <= 20 ), w AS ( SELECT `title_id`, COUNT(*) AS total_windows, SUM(CASE WHEN `window_open_date` <= DATE'2026-11-10' AND (`window_close_date` IS NULL OR `window_close_date` >= DATE'2026-11-10') THEN 1 ELSE 0 END) AS active_windows_by_date, SUM(CASE WHEN `active_flag` THEN 1 ELSE 0 END) AS active_windows_by_flag, SUM(CASE WHEN `window_open_date` > DATE'2026-11-10' THEN 1 ELSE 0 END) AS future_windows, MAX(`window_close_date`) AS latest_close FROM `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`content_window` GROUP BY `title_id` ) SELECT t.rnk, ti.`name` AS title_name, ROUND(t.watch_hours,0) AS watch_hours, t.sessions, COALESCE(w.total_windows,0) AS total_windows, COALESCE(w.active_windows_by_date,0) AS active_windows_by_date, COALESCE(w.active_windows_by_flag,0) AS active_windows_by_flag, COALESCE(w.future_windows,0) AS future_windows, w.latest_close FROM top20 t JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`title` ti ON t.`title_id` = ti.`title_id` LEFT JOIN w ON t.`title_id` = w.`title_id` ORDER BY t.rnk"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_content.content_episode",
+       "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+       "serverless_lakebase_praneeth_catalog.hoshi_distribution.playback_session",
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.content_window"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "WITH watch AS (\n  SELECT e.`title_id`, SUM(p.`total_watch_duration_seconds`)/3600.0 AS watch_hours, COUNT(*) AS sessions\n  FROM `serverless_lakebase_praneeth_catalog`.`hoshi_distribution`.`playback_session` p\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`content_episode` e ON p.`content_episode_id` = e.`content_episode_id`\n  GROUP BY e.`title_id`\n), top20 AS (\n  SELECT *, ROW_NUMBER() OVER (ORDER BY watch_hours DESC) AS rnk FROM watch QUALIFY rnk <= 20\n), w AS (\n  SELECT `title_id`,\n    COUNT(*) AS total_windows,\n    SUM(CASE WHEN `window_open_date` <= DATE'2026-11-10' AND (`window_close_date` IS NULL OR `window_close_date` >= DATE'2026-11-10') THEN 1 ELSE 0 END) AS active_windows_by_date,\n    SUM(CASE WHEN `active_flag` THEN 1 ELSE 0 END) AS active_windows_by_flag,\n    SUM(CASE WHEN `window_open_date` > DATE'2026-11-10' THEN 1 ELSE 0 END) AS future_windows,\n    MAX(`window_close_date`) AS latest_close\n  FROM `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`content_window`\n  GROUP BY `title_id`\n)\nSELECT t.rnk, ti.`name` AS title_name, ROUND(t.watch_hours,0) AS watch_hours, t.sessions,\n  COALESCE(w.total_windows,0) AS total_windows, COALESCE(w.active_windows_by_date,0) AS active_windows_by_date,\n  COALESCE(w.active_windows_by_flag,0) AS active_windows_by_flag, COALESCE(w.future_windows,0) AS future_windows, w.latest_close\nFROM top20 t\nJOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`title` ti ON t.`title_id` = ti.`title_id`\nLEFT JOIN w ON t.`title_id` = w.`title_id`\nORDER BY t.rnk"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_content.content_episode",
+       "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+       "serverless_lakebase_praneeth_catalog.hoshi_distribution.playback_session",
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.content_window"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cd05": [
+   {
+    "trace_id": "tr-397d49f1abaf3b9394786d45888d2827",
+    "tools": [
+     {
+      "tool": "system_ai_genie_one_mcp__genie_ask",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "SELECT `window_type`, `active_flag`, `availability_status`, COUNT(*) n, COUNT(DISTINCT `title_id`) titles FROM `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`content_window` GROUP BY ALL ORDER BY 1,2,3",
+       "WITH avod AS (\n  SELECT DISTINCT `title_id` FROM `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`content_window`\n  WHERE `window_type` = 'AVOD' AND `active_flag` = true\n), oct AS (\n  SELECT ps.`total_watch_duration_seconds` s, ce.`title_id`, (a.`title_id` IS NOT NULL) has_avod\n  FROM `serverless_lakebase_praneeth_catalog`.`hoshi_distribution`.`playback_session` ps\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`content_episode` ce ON ps.`content_episode_id` = ce.`content_episode_id`\n  LEFT JOIN avod a ON ce.`title_id` = a.`title_id`\n  WHERE ps.`session_start_timestamp` >= '2026-10-01' AND ps.`session_start_timestamp` < '2026-11-01'\n)\nSELECT\n  ROUND(SUM(CASE WHEN has_avod THEN s END)/3600.0, 1) AS avod_title_watch_hours,\n  COUNT(DISTINCT CASE WHEN has_avod THEN title_id END) AS avod_titles_watched,\n  ROUND(SUM(s)/3600.0, 1) AS total_watch_hours,\n  ROUND(100.0*SUM(CASE WHEN has_avod THEN s END)/SUM(s), 1) AS pct_of_total\nFROM oct"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_content.content_episode",
+       "serverless_lakebase_praneeth_catalog.hoshi_distribution.playback_session",
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.content_window"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cd06": [
+   {
+    "trace_id": "tr-a76113ccbb98cd7051fafbad93a753e5",
+    "tools": [
+     {
+      "tool": "subscribers_revenue",
+      "route": "genie:subscribers_revenue",
+      "genie_space_id": "01f1dde65eb21e6b953e73d666983ab5",
+      "conversation_id": "01f1de1d012413d6b20fc0d8220b7143",
+      "sql": [
+       "SELECT ROUND(SUM(`invoice`.`subtotal_amount` - `invoice`.`discount_amount`), 2) AS `total_subscription_revenue`\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_billing`.`invoice` AS `invoice`\nWHERE `invoice`.`invoice_date` >= DATE'2026-10-01'\n  AND `invoice`.`invoice_date` < DATE'2026-11-01'\n  AND `invoice`.`subscription_plan_id` IS NOT NULL;"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_billing.invoice"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_ask",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "SELECT `currency_code`, COUNT(*) AS impressions, ROUND(SUM(`cpm_realized`)/1000, 2) AS ad_revenue_usd, SUM(`revenue_amount`) AS sum_rounded_revenue\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_sales`.`impression_delivery`\nWHERE `delivery_date` >= DATE'2026-10-01' AND `delivery_date` < DATE'2026-11-01'\nGROUP BY `currency_code`",
+       "SELECT `currency_code`, COUNT(*) AS impressions, ROUND(SUM(`cpm_realized`)/1000, 2) AS ad_revenue_usd, SUM(`revenue_amount`) AS sum_rounded_revenue FROM `serverless_lakebase_praneeth_catalog`.`hoshi_sales`.`impression_delivery` WHERE `delivery_date` >= DATE'2026-10-01' AND `delivery_date` < DATE'2026-11-01' GROUP BY `currency_code`"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.impression_delivery"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "SELECT `currency_code`, COUNT(*) AS impressions, ROUND(SUM(`cpm_realized`)/1000, 2) AS ad_revenue_usd, SUM(`revenue_amount`) AS sum_rounded_revenue\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_sales`.`impression_delivery`\nWHERE `delivery_date` >= DATE'2026-10-01' AND `delivery_date` < DATE'2026-11-01'\nGROUP BY `currency_code`"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.impression_delivery"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cd07": [
+   {
+    "trace_id": "tr-a0e52bc51424418b0b6d608076bad63c",
+    "tools": [
+     {
+      "tool": "system_ai_genie_one_mcp__genie_ask",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "SELECT CASE WHEN t.`is_simulcast` IS NULL THEN 'Unlinked' WHEN t.`is_simulcast` THEN 'Simulcast' ELSE 'Catalogue' END AS title_type,\nCOUNT(*) AS impressions, COUNT(DISTINCT t.`title_id`) AS titles\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_sales`.`impression_delivery` d\nLEFT JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`content_episode` e ON d.`content_episode_id` = e.`content_episode_id`\nLEFT JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`title` t ON e.`title_id` = t.`title_id`\nWHERE d.`delivery_date` >= DATE'2026-10-01' AND d.`delivery_date` < DATE'2026-11-01'\nGROUP BY 1 ORDER BY 1",
+       "SELECT date_trunc('month', d.`delivery_date`) AS month,\nSUM(CASE WHEN t.`is_simulcast` THEN 1 ELSE 0 END) AS simulcast_impressions,\nSUM(CASE WHEN NOT t.`is_simulcast` THEN 1 ELSE 0 END) AS catalogue_impressions\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_sales`.`impression_delivery` d\nLEFT JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`content_episode` e ON d.`content_episode_id` = e.`content_episode_id`\nLEFT JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`title` t ON e.`title_id` = t.`title_id`\nWHERE d.`delivery_date` >= DATE'2026-05-01' AND d.`delivery_date` < DATE'2026-11-10'\nGROUP BY 1 ORDER BY 1"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_content.content_episode",
+       "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.impression_delivery"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "cd08": [
+   {
+    "trace_id": "tr-0f9309db01554c7ef08513eb161af504",
+    "tools": [
+     {
+      "tool": "content_viewing",
+      "route": "genie:content_viewing",
+      "genie_space_id": "01f1dde696261db5abb090abe62771cf",
+      "conversation_id": "01f1de1d1a141b9a8247188988b8a31d",
+      "sql": [
+       "WITH `latest_session_per_subscriber` AS (\n  SELECT\n    `playback_session`.`subscriber_id`,\n    `playback_session`.`content_episode_id`,\n    `playback_session`.`session_start_timestamp`,\n    `playback_session`.`playback_session_id`,\n    ROW_NUMBER() OVER (\n      PARTITION BY `playback_session`.`subscriber_id`\n      ORDER BY `playback_session`.`session_start_timestamp` DESC, `playback_session`.`playback_session_id` DESC\n    ) AS `rn`\n  FROM `serverless_lakebase_praneeth_catalog`.`hoshi_distribution`.`playback_session` AS `playback_session`\n  WHERE `playback_session`.`session_start_timestamp` IS NOT NULL\n), `last_watched_titles` AS (\n  SELECT\n    `title`.`name` AS `title_name`,\n    COUNT(DISTINCT `latest_session_per_subscriber`.`subscriber_id`) AS `subscribers`\n  FROM `latest_session_per_subscriber`\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`content_episode` AS `content_episode`\n    ON `latest_session_per_subscriber`.`content_episode_id` = `content_episode`.`content_episode_id`\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`title` AS `title`\n    ON `content_episode`.`title_id` = `title`.`title_id`\n  WHERE `latest_session_per_subscriber`.`rn` = 1\n    AND `title`.`name` IS NOT NULL\n  GROUP BY `title`.`name`\n), `ranked_titles` AS (\n  SELECT\n    `title_name`,\n    `subscribers`,\n    RANK() OVER (ORDER BY `subscribers` DESC, `title_name` ASC) AS `rnk`\n  FROM `last_watched_titles`\n)\nSELECT\n  `title_name`,\n  `subscribers`\nFROM `ranked_titles`\nWHERE `rnk` <= 5\nORDER BY `subscribers` DESC, `title_name` ASC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_content.content_episode",
+       "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+       "serverless_lakebase_praneeth_catalog.hoshi_distribution.playback_session"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "mr01": [
+   {
+    "trace_id": "tr-ff103ff49b501c706512679170fd491b",
+    "tools": []
+   }
+  ],
+  "mr02": [
+   {
+    "trace_id": "tr-c2b421a7c0e1a1022c3232c6d4a05338",
+    "tools": []
+   }
+  ],
+  "mr03": [
+   {
+    "trace_id": "tr-e08f2b2c69dc33ebbeb95e379fcbe2aa",
+    "tools": []
+   }
+  ],
+  "mr04": [
+   {
+    "trace_id": "tr-050cca937714dafd8958a9c99556ec79",
+    "tools": [
+     {
+      "tool": "system_ai_genie_one_mcp__genie_ask",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "mr05": [
+   {
+    "trace_id": "tr-8f04973c0719ee782e8f2ce35e2db58a",
+    "tools": [
+     {
+      "tool": "system_ai_genie_one_mcp__genie_ask",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "mr06": [
+   {
+    "trace_id": "tr-a619898adbc0cea50ec1d06547b45269",
+    "tools": [
+     {
+      "tool": "system_ai_genie_one_mcp__genie_ask",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "mr07": [
+   {
+    "trace_id": "tr-0a10df8bc94ff391c3997fe86c35affc",
+    "tools": []
+   }
+  ],
+  "mr08": [
+   {
+    "trace_id": "tr-8de57b64ac3d6cb68d33a2774009f2bd",
+    "tools": []
+   }
+  ],
+  "am01": [
+   {
+    "trace_id": "tr-955107adaea670b6b174d8c211d7d450",
+    "tools": [
+     {
+      "tool": "subscribers_revenue",
+      "route": "genie:subscribers_revenue",
+      "genie_space_id": "01f1dde65eb21e6b953e73d666983ab5",
+      "conversation_id": "01f1de1d378c1c4e89a649e313c0f315",
+      "sql": [
+       "WITH month_bounds AS (\n  SELECT DATE'2026-10-01' AS month_start, DATE'2026-11-01' AS next_month_start, DATE'2026-09-30' AS prev_month_end\n),\nfirst_signup AS (\n  SELECT\n    subscription.subscriber_id,\n    MIN(subscription.activation_date) AS signup_date\n  FROM serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription AS subscription\n  WHERE subscription.activation_date IS NOT NULL\n  GROUP BY subscription.subscriber_id\n),\nnew_signups AS (\n  SELECT COUNT(*) AS new_signups\n  FROM first_signup\n  CROSS JOIN month_bounds\n  WHERE first_signup.signup_date >= month_bounds.month_start\n    AND first_signup.signup_date < month_bounds.next_month_start\n),\nactive_paid_subscribers AS (\n  SELECT COUNT(DISTINCT subscription.subscriber_id) AS total_subscribers\n  FROM serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription AS subscription\n  JOIN serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription_plan AS subscription_plan\n    ON subscription_plan.subscription_plan_id = subscription.subscription_plan_id\n  CROSS JOIN month_bounds\n  WHERE subscription.subscription_status = 'Active'\n    AND subscription_plan.plan_type = 'Paid'\n    AND subscription.activation_date IS NOT NULL\n    AND subscription.activation_date < month_bounds.next_month_start\n),\nstarting_paid_subscribers AS (\n  SELECT COUNT(DISTINCT subscription.subscriber_id) AS starting_subscribers\n  FROM serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription AS subscription\n  JOIN serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription_plan AS subscription_plan\n    ON subscription_plan.subscription_plan_id = subscription.subscription_plan_id\n  CROSS JOIN month_bounds\n  WHERE subscription_plan.plan_type = 'Paid'\n    AND subscription.activation_date IS NOT NULL\n    AND subscription.activation_date <= month_bounds.prev_month_end\n    AND (subscription.termination_date IS NULL OR subscription.termination_date > month_bounds.prev_month_end)\n),\nmonthly_paid_churn AS (\n  SELECT COUNT(*) AS churned_subscribers\n  FROM serverless_lakebase_praneeth_catalog.hoshi_subscriber.churn_event AS churn_event\n  JOIN serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription AS subscription\n    ON subscription.subscription_id = churn_event.subscription_id\n  JOIN serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription_plan AS subscription_plan\n    ON subscription_plan.subscription_plan_id = subscription.subscription_plan_id\n  CROSS JOIN month_bounds\n  WHERE subscription_plan.plan_type = 'Paid'\n    AND churn_event.churn_timestamp >= month_bounds.month_start\n    AND churn_event.churn_timestamp < month_bounds.next_month_start\n),\nmonthly_revenue AS (\n  SELECT ROUND(SUM(invoice.subtotal_amount - invoice.discount_amount), 2) AS total_revenue\n  FROM serverless_lakebase_praneeth_catalog.hoshi_billing.invoice AS invoice\n  CROSS JOIN month_bounds\n  WHERE invoice.invoice_date >= month_bounds.month_start\n    AND invoice.invoice_date < month_bounds.next_month_start\n)\nSELECT\n  DATE'2026-10-01' AS month,\n  active_paid_subscribers.total_subscribers,\n  new_signups.new_signups,\n  ROUND(TRY_DIVIDE(monthly_paid_churn.churned_subscribers * 100.0, NULLIF(starting_paid_subscribers.starting_subscribers, 0)), 2) AS churn_rate,\n  monthly_revenue.total_revenue\nFROM active_paid_subscribers\nCROSS JOIN new_signups\nCROSS JOIN starting_paid_subscribers\nCROSS JOIN monthly_paid_churn\nCROSS JOIN monthly_revenue"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_billing.invoice",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.churn_event",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription_plan"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "content_viewing",
+      "route": "genie:content_viewing",
+      "genie_space_id": "01f1dde696261db5abb090abe62771cf",
+      "conversation_id": "01f1de1d492019f8a0709ebf1b7418e5",
+      "sql": [
+       "WITH monthly_sessions AS (\n  SELECT\n    playback_session.playback_session_id,\n    playback_session.content_episode_id,\n    playback_session.total_watch_duration_seconds\n  FROM serverless_lakebase_praneeth_catalog.hoshi_distribution.playback_session AS playback_session\n  WHERE playback_session.session_start_timestamp >= TIMESTAMP('2026-10-01 00:00:00')\n    AND playback_session.session_start_timestamp < TIMESTAMP('2026-11-01 00:00:00')\n),\noverall_metrics AS (\n  SELECT\n    try_divide(SUM(monthly_sessions.total_watch_duration_seconds),3600.0) AS total_watch_hours,\n    COUNT(monthly_sessions.playback_session_id) AS total_playback_sessions\n  FROM monthly_sessions\n),\npopular_content AS (\n  SELECT\n    title.title_id,\n    title.name AS most_popular_content,\n    COUNT(monthly_sessions.playback_session_id) AS content_playback_sessions,\n    try_divide(SUM(monthly_sessions.total_watch_duration_seconds),3600.0) AS content_watch_hours,\n    ROW_NUMBER() OVER (\n      ORDER BY COUNT(monthly_sessions.playback_session_id) DESC,\n               SUM(monthly_sessions.total_watch_duration_seconds) DESC,\n               title.title_id\n    ) AS popularity_rank\n  FROM monthly_sessions\n  JOIN serverless_lakebase_praneeth_catalog.hoshi_content.content_episode AS content_episode\n    ON monthly_sessions.content_episode_id = content_episode.content_episode_id\n  JOIN serverless_lakebase_praneeth_catalog.hoshi_content.title AS title\n    ON content_episode.title_id = title.title_id\n  WHERE title.name IS NOT NULL\n  GROUP BY title.title_id, title.name\n)\nSELECT\n  overall_metrics.total_watch_hours,\n  overall_metrics.total_playback_sessions,\n  popular_content.most_popular_content,\n  popular_content.content_playback_sessions AS most_popular_content_sessions,\n  popular_content.content_watch_hours AS most_popular_content_watch_hours\nFROM overall_metrics\nCROSS JOIN popular_content\nWHERE popular_content.popularity_rank = 1"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_content.content_episode",
+       "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+       "serverless_lakebase_praneeth_catalog.hoshi_distribution.playback_session"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "am02": [
+   {
+    "trace_id": "tr-1845f62c5eb4044cb31889c87c2b9b33",
+    "tools": [
+     {
+      "tool": "subscribers_revenue",
+      "route": "genie:subscribers_revenue",
+      "genie_space_id": "01f1dde65eb21e6b953e73d666983ab5",
+      "conversation_id": "01f1de1d3a8b1267b35dd36f3e938456",
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "subscribers_revenue",
+      "route": "genie:subscribers_revenue",
+      "genie_space_id": "01f1dde65eb21e6b953e73d666983ab5",
+      "conversation_id": "01f1de1d43161fa2a8ff1ac707e69361",
+      "sql": [
+       "WITH months AS (\n  SELECT explode(sequence(to_date('2026-05-01'), to_date('2026-10-01'), interval 1 month)) AS month_start\n), paid_churn AS (\n  SELECT\n    date_trunc('MONTH', `churn_event`.`churn_timestamp`) AS month_start,\n    COUNT(DISTINCT `churn_event`.`subscriber_id`) AS churned_paid_subscribers\n  FROM `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`churn_event` AS `churn_event`\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscription` AS `subscription`\n    ON `churn_event`.`subscription_id` = `subscription`.`subscription_id`\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscription_plan` AS `subscription_plan`\n    ON `subscription`.`subscription_plan_id` = `subscription_plan`.`subscription_plan_id`\n  WHERE `subscription_plan`.`plan_type` = 'Paid'\n    AND `churn_event`.`churn_timestamp` >= TIMESTAMP('2026-05-01')\n    AND `churn_event`.`churn_timestamp` < TIMESTAMP('2026-11-01')\n  GROUP BY 1\n), paid_base AS (\n  SELECT\n    `months`.`month_start`,\n    COUNT(DISTINCT `subscription`.`subscriber_id`) AS starting_paid_subscribers\n  FROM `months`\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscription` AS `subscription`\n    ON `subscription`.`activation_date` IS NOT NULL\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscription_plan` AS `subscription_plan`\n    ON `subscription`.`subscription_plan_id` = `subscription_plan`.`subscription_plan_id`\n  WHERE `subscription_plan`.`plan_type` = 'Paid'\n    AND `subscription`.`activation_date` < `months`.`month_start`\n    AND (`subscription`.`termination_date` IS NULL OR `subscription`.`termination_date` >= `months`.`month_start`)\n  GROUP BY `months`.`month_start`\n), monthly_rates AS (\n  SELECT\n    `months`.`month_start`,\n    COALESCE(`paid_churn`.`churned_paid_subscribers`, 0) AS churned_paid_subscribers,\n    `paid_base`.`starting_paid_subscribers`,\n    100 * TRY_DIVIDE(COALESCE(`paid_churn`.`churned_paid_subscribers`, 0), `paid_base`.`starting_paid_subscribers`) AS monthly_paid_churn_rate\n  FROM `months`\n  LEFT JOIN `paid_churn`\n    ON `months`.`month_start` = `paid_churn`.`month_start`\n  LEFT JOIN `paid_base`\n    ON `months`.`month_start` = `paid_base`.`month_start`\n)\nSELECT\n  SUM(`churned_paid_subscribers`) AS churned_paid_subscribers_last_six_months,\n  AVG(`starting_paid_subscribers`) AS average_starting_paid_subscribers,\n  100 * TRY_DIVIDE(SUM(`churned_paid_subscribers`), AVG(`starting_paid_subscribers`)) AS paid_subscriber_churn_rate_last_six_months\nFROM `monthly_rates`"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.churn_event",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription_plan"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "am03": [
+   {
+    "trace_id": "tr-e8bd09bd9399e92c0ed792206b235157",
+    "tools": [
+     {
+      "tool": "content_viewing",
+      "route": "genie:content_viewing",
+      "genie_space_id": "01f1dde696261db5abb090abe62771cf",
+      "conversation_id": "01f1de1d3be31eaaa18040847d4ff0b3",
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "am04": [
+   {
+    "trace_id": "tr-413e993d99ec5a52fdf1125f7bb8a377",
+    "tools": [
+     {
+      "tool": "subscribers_revenue",
+      "route": "genie:subscribers_revenue",
+      "genie_space_id": "01f1dde65eb21e6b953e73d666983ab5",
+      "conversation_id": "01f1de1d3bfb1ea0afcbda97c0402298",
+      "sql": [
+       "SELECT ROUND(SUM(`invoice`.`subtotal_amount` - `invoice`.`discount_amount`), 2) AS `revenue_without_tax`\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_billing`.`invoice` AS `invoice`\nWHERE `invoice`.`invoice_date` >= DATE'2026-07-01'\n  AND `invoice`.`invoice_date` < DATE'2026-10-01'"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_billing.invoice"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "am05": [
+   {
+    "trace_id": "tr-80d3c037b2e1b450e57bbcaa8cca566f",
+    "tools": []
+   }
+  ],
+  "am06": [
+   {
+    "trace_id": "tr-c4896e9bdeaa967594fe9693706608f0",
+    "tools": []
+   }
+  ],
+  "th01.1": [
+   {
+    "trace_id": "tr-740ec6d350614ce6c7706ec7a8caad6b",
+    "tools": [
+     {
+      "tool": "subscribers_revenue",
+      "route": "genie:subscribers_revenue",
+      "genie_space_id": "01f1dde65eb21e6b953e73d666983ab5",
+      "conversation_id": "01f1de1d49eb157b83441ae3a7e0faab",
+      "sql": [
+       "SELECT COUNT(DISTINCT `subscription`.`subscriber_id`) AS `paying_subscribers`\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscription` AS `subscription`\nJOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscription_plan` AS `subscription_plan`\n  ON `subscription`.`subscription_plan_id` = `subscription_plan`.`subscription_plan_id`\nWHERE `subscription`.`subscription_status` = 'Active'\n  AND `subscription_plan`.`plan_type` = 'Paid'"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription_plan"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "th01.2": [
+   {
+    "trace_id": "tr-5da2f1fc4c8c20146d7066ffc307b635",
+    "tools": [
+     {
+      "tool": "subscribers_revenue",
+      "route": "genie:subscribers_revenue",
+      "genie_space_id": "01f1dde65eb21e6b953e73d666983ab5",
+      "conversation_id": "01f1de1d556915689cd41c7a3f6374d6",
+      "sql": [
+       "SELECT\n  `territory`.`territory_group` AS `region`,\n  COUNT(DISTINCT `subscription`.`subscriber_id`) AS `paying_subscribers`\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscription` AS `subscription`\nJOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscription_plan` AS `subscription_plan`\n  ON `subscription`.`subscription_plan_id` = `subscription_plan`.`subscription_plan_id`\nJOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscriber` AS `subscriber`\n  ON `subscription`.`subscriber_id` = `subscriber`.`subscriber_id`\nJOIN `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`territory` AS `territory`\n  ON `subscriber`.`territory_id` = `territory`.`territory_id`\nWHERE `subscription`.`subscription_status` = 'Active'\n  AND `subscription_plan`.`plan_type` = 'Paid'\n  AND `territory`.`territory_group` IS NOT NULL\nGROUP BY `territory`.`territory_group`\nORDER BY `paying_subscribers` DESC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.territory",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription_plan"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "th01.3": [
+   {
+    "trace_id": "tr-3f34b84c63d1da160a20ea333c0c86e3",
+    "tools": [
+     {
+      "tool": "subscribers_revenue",
+      "route": "genie:subscribers_revenue",
+      "genie_space_id": "01f1dde65eb21e6b953e73d666983ab5",
+      "conversation_id": "01f1de1d61081f0ab1556c0ec292f328",
+      "sql": [
+       "WITH regional_paid_churn AS (\n  SELECT\n    `territory`.`territory_group` AS `region`,\n    COUNT(DISTINCT `churn_event`.`subscriber_id`) AS `paid_subscribers_lost`\n  FROM `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`churn_event` AS `churn_event`\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscription` AS `subscription`\n    ON `churn_event`.`subscription_id` = `subscription`.`subscription_id`\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscription_plan` AS `subscription_plan`\n    ON `subscription`.`subscription_plan_id` = `subscription_plan`.`subscription_plan_id`\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscriber` AS `subscriber`\n    ON `churn_event`.`subscriber_id` = `subscriber`.`subscriber_id`\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`territory` AS `territory`\n    ON `subscriber`.`territory_id` = `territory`.`territory_id`\n  WHERE `churn_event`.`churn_timestamp` >= TIMESTAMP '2026-10-01 00:00:00'\n    AND `churn_event`.`churn_timestamp` < TIMESTAMP '2026-11-01 00:00:00'\n    AND `subscription_plan`.`plan_type` = 'Paid'\n    AND `territory`.`territory_group` IS NOT NULL\n  GROUP BY `territory`.`territory_group`\n), ranked_regions AS (\n  SELECT\n    `region`,\n    `paid_subscribers_lost`,\n    RANK() OVER (ORDER BY `paid_subscribers_lost` DESC) AS `rnk`\n  FROM regional_paid_churn\n)\nSELECT `region`, `paid_subscribers_lost`\nFROM ranked_regions\nWHERE `rnk` = 1\nORDER BY `region`"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.territory",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.churn_event",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscription_plan"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "th02.1": [
+   {
+    "trace_id": "tr-6dad64af094332effe551e25ea3cc2f4",
+    "tools": [
+     {
+      "tool": "content_viewing",
+      "route": "genie:content_viewing",
+      "genie_space_id": "01f1dde696261db5abb090abe62771cf",
+      "conversation_id": "01f1de1d49ff1a4baab9934649d5f193",
+      "sql": [
+       "WITH `title_watch_hours` AS (\n  SELECT\n    `title`.`title_id`,\n    `title`.`name` AS `title_name`,\n    try_divide(SUM(`playback_session`.`total_watch_duration_seconds`),3600.0) AS `watch_hours`\n  FROM `serverless_lakebase_praneeth_catalog`.`hoshi_distribution`.`playback_session` AS `playback_session`\n  INNER JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`content_episode` AS `content_episode`\n    ON `playback_session`.`content_episode_id` = `content_episode`.`content_episode_id`\n  INNER JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`title` AS `title`\n    ON `content_episode`.`title_id` = `title`.`title_id`\n  WHERE `playback_session`.`session_start_timestamp` >= TIMESTAMP '2026-10-01 00:00:00'\n    AND `playback_session`.`session_start_timestamp` < TIMESTAMP '2026-11-01 00:00:00'\n    AND `title`.`name` IS NOT NULL\n  GROUP BY `title`.`title_id`, `title`.`name`\n), `ranked_titles` AS (\n  SELECT\n    `title_id`,\n    `title_name`,\n    `watch_hours`,\n    RANK() OVER (ORDER BY `watch_hours` DESC) AS `watch_hours_rank`\n  FROM `title_watch_hours`\n)\nSELECT\n  `title_id`,\n  `title_name`,\n  `watch_hours`,\n  `watch_hours_rank`\nFROM `ranked_titles`\nWHERE `watch_hours_rank` <= 5\nORDER BY `watch_hours` DESC, `title_id` ASC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_content.content_episode",
+       "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+       "serverless_lakebase_praneeth_catalog.hoshi_distribution.playback_session"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "th02.2": [
+   {
+    "trace_id": "tr-862cf27d26411af62585442afe8c1b36",
+    "tools": [
+     {
+      "tool": "content_viewing",
+      "route": "genie:content_viewing",
+      "genie_space_id": "01f1dde696261db5abb090abe62771cf",
+      "conversation_id": "01f1de1d58501c11aa40b160b42c3660",
+      "sql": [
+       "WITH `title_watch_hours` AS (\n  SELECT\n    `title`.`title_id`,\n    `title`.`name` AS `title_name`,\n    try_divide(SUM(`playback_session`.`total_watch_duration_seconds`),3600.0) AS `watch_hours`\n  FROM `serverless_lakebase_praneeth_catalog`.`hoshi_distribution`.`playback_session` AS `playback_session`\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`content_episode` AS `content_episode`\n    ON `playback_session`.`content_episode_id` = `content_episode`.`content_episode_id`\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`title` AS `title`\n    ON `content_episode`.`title_id` = `title`.`title_id`\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscriber` AS `subscriber`\n    ON `playback_session`.`subscriber_id` = `subscriber`.`subscriber_id`\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`territory` AS `territory`\n    ON `subscriber`.`territory_id` = `territory`.`territory_id`\n  WHERE `playback_session`.`session_start_timestamp` >= TIMESTAMP '2026-10-01 00:00:00'\n    AND `playback_session`.`session_start_timestamp` < TIMESTAMP '2026-11-01 00:00:00'\n    AND `territory`.`territory_group` = 'LATAM'\n    AND `title`.`name` IS NOT NULL\n  GROUP BY `title`.`title_id`, `title`.`name`\n), `ranked_titles` AS (\n  SELECT\n    `title_id`,\n    `title_name`,\n    `watch_hours`,\n    RANK() OVER (ORDER BY `watch_hours` DESC) AS `watch_hours_rank`\n  FROM `title_watch_hours`\n)\nSELECT\n  `title_id`,\n  `title_name`,\n  `watch_hours`\nFROM `ranked_titles`\nWHERE `watch_hours_rank` <= 5\nORDER BY `watch_hours` DESC, `title_id` ASC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_content.content_episode",
+       "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+       "serverless_lakebase_praneeth_catalog.hoshi_distribution.playback_session",
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.territory",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "th03.1": [
+   {
+    "trace_id": "tr-ef4a563ca48877156268e39169ff49c8",
+    "tools": [
+     {
+      "tool": "system_ai_genie_one_mcp__genie_ask",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "SELECT `agreement_status`, COUNT(DISTINCT `license_agreement_id`) AS agreements_expiring, MIN(`expiry_date`) AS first_expiry, MAX(`expiry_date`) AS last_expiry\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`license_agreement`\nWHERE `expiry_date` BETWEEN DATE'2026-11-10' AND DATE_ADD(DATE'2026-11-10', 90)\nGROUP BY `agreement_status`",
+       "SELECT `agreement_status`, COUNT(DISTINCT `license_agreement_id`) AS agreements_expiring, MIN(`expiry_date`) AS first_expiry, MAX(`expiry_date`) AS last_expiry FROM `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`license_agreement` WHERE `expiry_date` BETWEEN DATE'2026-11-10' AND DATE_ADD(DATE'2026-11-10', 90) GROUP BY `agreement_status`"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "th03.2": [
+   {
+    "trace_id": "tr-0d721f48c9ce5d644fb7db89efa78e1e",
+    "tools": [
+     {
+      "tool": "system_ai_genie_one_mcp__genie_ask",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "WITH exp AS (\n  SELECT h.`holder_id`, h.`rights_holder_name`, COUNT(DISTINCT la.`license_agreement_id`) AS expiring_agreements\n  FROM `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`license_agreement` la\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`holder` h ON la.`primary_license_holder_id` = h.`holder_id`\n  WHERE la.`expiry_date` BETWEEN DATE'2026-11-10' AND DATE'2027-02-07'\n  GROUP BY h.`holder_id`, h.`rights_holder_name`\n), r AS (\n  SELECT *, SUM(expiring_agreements) OVER () AS total_expiring,\n         RANK() OVER (ORDER BY expiring_agreements DESC) AS rnk,\n         COUNT(*) OVER () AS licensors_with_expiries\n  FROM exp\n)\nSELECT rnk, rights_holder_name, expiring_agreements, ROUND(100.0*expiring_agreements/total_expiring,1) AS pct_of_expiring, total_expiring, licensors_with_expiries\nFROM r WHERE rnk <= 4 ORDER BY rnk, rights_holder_name",
+       "WITH exp AS ( SELECT h.`holder_id`, h.`rights_holder_name`, COUNT(DISTINCT la.`license_agreement_id`) AS expiring_agreements FROM `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`license_agreement` la JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`holder` h ON la.`primary_license_holder_id` = h.`holder_id` WHERE la.`expiry_date` BETWEEN DATE'2026-11-10' AND DATE'2027-02-07' GROUP BY h.`holder_id`, h.`rights_holder_name` ), r AS ( SELECT *, SUM(expiring_agreements) OVER () AS total_expiring, RANK() OVER (ORDER BY expiring_agreements DESC) AS rnk, COUNT(*) OVER () AS licensors_with_expiries FROM exp ) SELECT rnk, rights_holder_name, expiring_agreements, ROUND(100.0*expiring_agreements/total_expiring,1) AS pct_of_expiring, total_expiring, licensors_with_expiries FROM r WHERE rnk <= 4 ORDER BY rnk, rights_holder_name"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.holder",
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "th03.3": [
+   {
+    "trace_id": "tr-f03601d721dee71cd0519dbd4333d0ac",
+    "tools": []
+   }
+  ],
+  "th04.1": [
+   {
+    "trace_id": "tr-6dec78dd3b88e3f53c81f408ac7d7a91",
+    "tools": [
+     {
+      "tool": "system_ai_genie_one_mcp__genie_ask",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "WITH mv AS (\n  SELECT `Campaign Objective` AS objective, MEASURE(`Average CPM`) AS mv_avg_cpm, MEASURE(`Impressions Delivered`) AS impressions\n  FROM serverless_lakebase_praneeth_catalog.hoshi_sales.ad_delivery_metrics GROUP BY ALL),\nraw AS (\n  SELECT c.campaign_type AS objective, AVG(d.cpm_realized) AS avg_cpm_realized,\n         SUM(d.revenue_amount)*1000/SUM(d.total_impressions_served) AS dashboard_cpm\n  FROM serverless_lakebase_praneeth_catalog.hoshi_sales.impression_delivery d\n  JOIN serverless_lakebase_praneeth_catalog.hoshi_sales.campaign c ON d.campaign_id = c.campaign_id\n  GROUP BY c.campaign_type),\ntgt AS (\n  SELECT campaign_type AS objective, AVG(target_cpm) AS avg_target_cpm, COUNT(*) AS campaigns\n  FROM serverless_lakebase_praneeth_catalog.hoshi_sales.campaign GROUP BY campaign_type)\nSELECT COALESCE(mv.objective, raw.objective) AS objective, ROUND(mv.mv_avg_cpm,2) AS average_cpm, mv.impressions,\n       ROUND(raw.avg_cpm_realized,2) AS avg_cpm_check, ROUND(raw.dashboard_cpm,2) AS dashboard_cpm,\n       ROUND(tgt.avg_target_cpm,2) AS avg_target_cpm, tgt.campaigns\nFROM mv FULL JOIN raw ON mv.objective = raw.objective\nLEFT JOIN tgt ON tgt.objective = COALESCE(mv.objective, raw.objective)\nORDER BY average_cpm DESC",
+       "WITH mv AS ( SELECT `Campaign Objective` AS objective, MEASURE(`Average CPM`) AS mv_avg_cpm, MEASURE(`Impressions Delivered`) AS impressions FROM serverless_lakebase_praneeth_catalog.hoshi_sales.ad_delivery_metrics GROUP BY ALL), raw AS ( SELECT c.campaign_type AS objective, AVG(d.cpm_realized) AS avg_cpm_realized, SUM(d.revenue_amount)*1000/SUM(d.total_impressions_served) AS dashboard_cpm FROM serverless_lakebase_praneeth_catalog.hoshi_sales.impression_delivery d JOIN serverless_lakebase_praneeth_catalog.hoshi_sales.campaign c ON d.campaign_id = c.campaign_id GROUP BY c.campaign_type), tgt AS ( SELECT campaign_type AS objective, AVG(target_cpm) AS avg_target_cpm, COUNT(*) AS campaigns FROM serverless_lakebase_praneeth_catalog.hoshi_sales.campaign GROUP BY campaign_type) SELECT COALESCE(mv.objective, raw.objective) AS objective, ROUND(mv.mv_avg_cpm,2) AS average_cpm, mv.impressions, ROUND(raw.avg_cpm_realized,2) AS avg_cpm_check, ROUND(raw.dashboard_cpm,2) AS dashboard_cpm, ROUND(tgt.avg_target_cpm,2) AS avg_target_cpm, tgt.campaigns FROM mv FULL JOIN raw ON mv.objective = raw.objective LEFT JOIN tgt ON tgt.objective = COALESCE(mv.objective, raw.objective) ORDER BY average_cpm DESC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.ad_delivery_metrics",
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.campaign",
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.impression_delivery"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "WITH mv AS (\n  SELECT `Campaign Objective` AS objective, MEASURE(`Average CPM`) AS mv_avg_cpm, MEASURE(`Impressions Delivered`) AS impressions\n  FROM serverless_lakebase_praneeth_catalog.hoshi_sales.ad_delivery_metrics GROUP BY ALL),\nraw AS (\n  SELECT c.campaign_type AS objective, AVG(d.cpm_realized) AS avg_cpm_realized,\n         SUM(d.revenue_amount)*1000/SUM(d.total_impressions_served) AS dashboard_cpm\n  FROM serverless_lakebase_praneeth_catalog.hoshi_sales.impression_delivery d\n  JOIN serverless_lakebase_praneeth_catalog.hoshi_sales.campaign c ON d.campaign_id = c.campaign_id\n  GROUP BY c.campaign_type),\ntgt AS (\n  SELECT campaign_type AS objective, AVG(target_cpm) AS avg_target_cpm, COUNT(*) AS campaigns\n  FROM serverless_lakebase_praneeth_catalog.hoshi_sales.campaign GROUP BY campaign_type)\nSELECT COALESCE(mv.objective, raw.objective) AS objective, ROUND(mv.mv_avg_cpm,2) AS average_cpm, mv.impressions,\n       ROUND(raw.avg_cpm_realized,2) AS avg_cpm_check, ROUND(raw.dashboard_cpm,2) AS dashboard_cpm,\n       ROUND(tgt.avg_target_cpm,2) AS avg_target_cpm, tgt.campaigns\nFROM mv FULL JOIN raw ON mv.objective = raw.objective\nLEFT JOIN tgt ON tgt.objective = COALESCE(mv.objective, raw.objective)\nORDER BY average_cpm DESC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.ad_delivery_metrics",
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.campaign",
+       "serverless_lakebase_praneeth_catalog.hoshi_sales.impression_delivery"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "th04.2": [
+   {
+    "trace_id": "tr-829fd018b4010c763f8f50e6ade9814b",
+    "tools": []
+   }
+  ],
+  "th05.1": [
+   {
+    "trace_id": "tr-865d930d2d23bb8235a0b74d2501b42c",
+    "tools": [
+     {
+      "tool": "content_viewing",
+      "route": "genie:content_viewing",
+      "genie_space_id": "01f1dde696261db5abb090abe62771cf",
+      "conversation_id": "01f1de1d6719109189ee29bcabe236f9",
+      "sql": [
+       "WITH `title_watch` AS (\n  SELECT\n    `title`.`title_id`,\n    `title`.`name` AS `title_name`,\n    try_divide(SUM(`playback_session`.`total_watch_duration_seconds`),3600.0) AS `watch_hours`\n  FROM `serverless_lakebase_praneeth_catalog`.`hoshi_distribution`.`playback_session` AS `playback_session`\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`content_episode` AS `content_episode`\n    ON `playback_session`.`content_episode_id` = `content_episode`.`content_episode_id`\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`title` AS `title`\n    ON `content_episode`.`title_id` = `title`.`title_id`\n  GROUP BY `title`.`title_id`, `title`.`name`\n), `ranked` AS (\n  SELECT\n    `title_id`,\n    `title_name`,\n    `watch_hours`,\n    RANK() OVER (ORDER BY `watch_hours` DESC) AS `watch_rank`\n  FROM `title_watch`\n)\nSELECT\n  `title_id`,\n  `title_name`,\n  `watch_hours`\nFROM `ranked`\nWHERE `watch_rank` <= 1\nORDER BY `watch_hours` DESC, `title_id` ASC;"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_content.content_episode",
+       "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+       "serverless_lakebase_praneeth_catalog.hoshi_distribution.playback_session"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "th05.2": [
+   {
+    "trace_id": "tr-b412f205556023130f61e1103b4cd5e2",
+    "tools": [
+     {
+      "tool": "system_ai_genie_one_mcp__genie_ask",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "WITH t AS ( SELECT `title_id`, `name`, `season_number`, `content_type` FROM `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`title` WHERE `name` = 'Ashen Tempest' ), v AS ( SELECT t.`title_id`, s.`territory_id`, COUNT(*) AS sessions, COUNT(DISTINCT p.`subscriber_id`) AS viewers, MIN(p.`session_start_timestamp`) AS first_view, MAX(p.`session_start_timestamp`) AS last_view FROM `serverless_lakebase_praneeth_catalog`.`hoshi_distribution`.`playback_session` p JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`content_episode` e ON p.`content_episode_id` = e.`content_episode_id` JOIN t ON e.`title_id` = t.`title_id` JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscriber` s ON p.`subscriber_id` = s.`subscriber_id` GROUP BY t.`title_id`, s.`territory_id` ), w AS ( SELECT `title_id`, `territory_id`, MAX(CASE WHEN `active_flag` THEN 1 ELSE 0 END) AS has_active, COUNT(*) AS windows, MIN(`window_open_date`) AS first_open, MAX(`window_close_date`) AS last_close, CONCAT_WS(', ', COLLECT_SET(`availability_status`)) AS statuses FROM `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`content_window` WHERE `title_id` IN (SELECT `title_id` FROM t) GROUP BY `title_id`, `territory_id` ) SELECT t.`season_number`, tr.`name` AS territory, tr.`territory_group`, v.sessions, v.viewers, CAST(v.first_view AS DATE) AS first_view, CAST(v.last_view AS DATE) AS last_view, COALESCE(w.windows,0) AS windows, w.first_open, w.last_close, w.statuses, CASE WHEN w.has_active = 1 THEN 'Active' WHEN w.windows IS NULL THEN 'No window ever' ELSE 'Not active' END AS window_status FROM v JOIN t ON v.`title_id` = t.`title_id` JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`territory` tr ON v.`territory_id` = tr.`territory_id` LEFT JOIN w ON v.`title_id` = w.`title_id` AND v.`territory_id` = w.`territory_id` ORDER BY t.`season_number`, CASE WHEN w.has_active = 1 THEN 1 ELSE 0 END, v.sessions DESC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_content.content_episode",
+       "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+       "serverless_lakebase_praneeth_catalog.hoshi_distribution.playback_session",
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.content_window",
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.territory",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "WITH t AS ( SELECT `title_id`, `name`, `season_number`, `content_type` FROM `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`title` WHERE `name` = 'Ashen Tempest' ), v AS ( SELECT t.`title_id`, s.`territory_id`, COUNT(*) AS sessions, COUNT(DISTINCT p.`subscriber_id`) AS viewers, MIN(p.`session_start_timestamp`) AS first_view, MAX(p.`session_start_timestamp`) AS last_view FROM `serverless_lakebase_praneeth_catalog`.`hoshi_distribution`.`playback_session` p JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`content_episode` e ON p.`content_episode_id` = e.`content_episode_id` JOIN t ON e.`title_id` = t.`title_id` JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscriber` s ON p.`subscriber_id` = s.`subscriber_id` GROUP BY t.`title_id`, s.`territory_id` ), w AS ( SELECT `title_id`, `territory_id`, MAX(CASE WHEN `active_flag` THEN 1 ELSE 0 END) AS has_active, COUNT(*) AS windows, MIN(`window_open_date`) AS first_open, MAX(`window_close_date`) AS last_close, CONCAT_WS(', ', COLLECT_SET(`availability_status`)) AS statuses FROM `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`content_window` WHERE `title_id` IN (SELECT `title_id` FROM t) GROUP BY `title_id`, `territory_id` ) SELECT t.`season_number`, tr.`name` AS territory, tr.`territory_group`, v.sessions, v.viewers, CAST(v.first_view AS DATE) AS first_view, CAST(v.last_view AS DATE) AS last_view, COALESCE(w.windows,0) AS windows, w.first_open, w.last_close, w.statuses, CASE WHEN w.has_active = 1 THEN 'Active' WHEN w.windows IS NULL THEN 'No window ever' ELSE 'Not active' END AS window_status FROM v JOIN t ON v.`title_id` = t.`title_id` JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`territory` tr ON v.`territory_id` = tr.`territory_id` LEFT JOIN w ON v.`title_id` = w.`title_id` AND v.`territory_id` = w.`territory_id` ORDER BY t.`season_number`, CASE WHEN w.has_active = 1 THEN 1 ELSE 0 END, v.sessions DESC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_content.content_episode",
+       "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+       "serverless_lakebase_praneeth_catalog.hoshi_distribution.playback_session",
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.content_window",
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.territory",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "WITH t AS ( SELECT `title_id`, `name`, `season_number`, `content_type` FROM `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`title` WHERE `name` = 'Ashen Tempest' ), v AS ( SELECT t.`title_id`, s.`territory_id`, COUNT(*) AS sessions, COUNT(DISTINCT p.`subscriber_id`) AS viewers, MIN(p.`session_start_timestamp`) AS first_view, MAX(p.`session_start_timestamp`) AS last_view FROM `serverless_lakebase_praneeth_catalog`.`hoshi_distribution`.`playback_session` p JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`content_episode` e ON p.`content_episode_id` = e.`content_episode_id` JOIN t ON e.`title_id` = t.`title_id` JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscriber` s ON p.`subscriber_id` = s.`subscriber_id` GROUP BY t.`title_id`, s.`territory_id` ), w AS ( SELECT `title_id`, `territory_id`, MAX(CASE WHEN `active_flag` THEN 1 ELSE 0 END) AS has_active, COUNT(*) AS windows, MIN(`window_open_date`) AS first_open, MAX(`window_close_date`) AS last_close, CONCAT_WS(', ', COLLECT_SET(`availability_status`)) AS statuses FROM `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`content_window` WHERE `title_id` IN (SELECT `title_id` FROM t) GROUP BY `title_id`, `territory_id` ) SELECT t.`season_number`, tr.`name` AS territory, tr.`territory_group`, v.sessions, v.viewers, CAST(v.first_view AS DATE) AS first_view, CAST(v.last_view AS DATE) AS last_view, COALESCE(w.windows,0) AS windows, w.first_open, w.last_close, w.statuses, CASE WHEN w.has_active = 1 THEN 'Active' WHEN w.windows IS NULL THEN 'No window ever' ELSE 'Not active' END AS window_status FROM v JOIN t ON v.`title_id` = t.`title_id` JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`territory` tr ON v.`territory_id` = tr.`territory_id` LEFT JOIN w ON v.`title_id` = w.`title_id` AND v.`territory_id` = w.`territory_id` ORDER BY t.`season_number`, CASE WHEN w.has_active = 1 THEN 1 ELSE 0 END, v.sessions DESC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_content.content_episode",
+       "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+       "serverless_lakebase_praneeth_catalog.hoshi_distribution.playback_session",
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.content_window",
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.territory",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "WITH t AS ( SELECT `title_id`, `name`, `season_number`, `content_type` FROM `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`title` WHERE `name` = 'Ashen Tempest' ), v AS ( SELECT t.`title_id`, s.`territory_id`, COUNT(*) AS sessions, COUNT(DISTINCT p.`subscriber_id`) AS viewers, MIN(p.`session_start_timestamp`) AS first_view, MAX(p.`session_start_timestamp`) AS last_view FROM `serverless_lakebase_praneeth_catalog`.`hoshi_distribution`.`playback_session` p JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`content_episode` e ON p.`content_episode_id` = e.`content_episode_id` JOIN t ON e.`title_id` = t.`title_id` JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscriber` s ON p.`subscriber_id` = s.`subscriber_id` GROUP BY t.`title_id`, s.`territory_id` ), w AS ( SELECT `title_id`, `territory_id`, MAX(CASE WHEN `active_flag` THEN 1 ELSE 0 END) AS has_active, COUNT(*) AS windows, MIN(`window_open_date`) AS first_open, MAX(`window_close_date`) AS last_close, CONCAT_WS(', ', COLLECT_SET(`availability_status`)) AS statuses FROM `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`content_window` WHERE `title_id` IN (SELECT `title_id` FROM t) GROUP BY `title_id`, `territory_id` ) SELECT t.`season_number`, tr.`name` AS territory, tr.`territory_group`, v.sessions, v.viewers, CAST(v.first_view AS DATE) AS first_view, CAST(v.last_view AS DATE) AS last_view, COALESCE(w.windows,0) AS windows, w.first_open, w.last_close, w.statuses, CASE WHEN w.has_active = 1 THEN 'Active' WHEN w.windows IS NULL THEN 'No window ever' ELSE 'Not active' END AS window_status FROM v JOIN t ON v.`title_id` = t.`title_id` JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`territory` tr ON v.`territory_id` = tr.`territory_id` LEFT JOIN w ON v.`title_id` = w.`title_id` AND v.`territory_id` = w.`territory_id` ORDER BY t.`season_number`, CASE WHEN w.has_active = 1 THEN 1 ELSE 0 END, v.sessions DESC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_content.content_episode",
+       "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+       "serverless_lakebase_praneeth_catalog.hoshi_distribution.playback_session",
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.content_window",
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.territory",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "WITH t AS (\n  SELECT `title_id`, `name`, `season_number`, `content_type` FROM `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`title` WHERE `name` = 'Ashen Tempest'\n), v AS (\n  SELECT t.`title_id`, s.`territory_id`, COUNT(*) AS sessions, COUNT(DISTINCT p.`subscriber_id`) AS viewers,\n         MIN(p.`session_start_timestamp`) AS first_view, MAX(p.`session_start_timestamp`) AS last_view\n  FROM `serverless_lakebase_praneeth_catalog`.`hoshi_distribution`.`playback_session` p\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_content`.`content_episode` e ON p.`content_episode_id` = e.`content_episode_id`\n  JOIN t ON e.`title_id` = t.`title_id`\n  JOIN `serverless_lakebase_praneeth_catalog`.`hoshi_subscriber`.`subscriber` s ON p.`subscriber_id` = s.`subscriber_id`\n  GROUP BY t.`title_id`, s.`territory_id`\n), w AS (\n  SELECT `title_id`, `territory_id`,\n         MAX(CASE WHEN `active_flag` THEN 1 ELSE 0 END) AS has_active,\n         COUNT(*) AS windows,\n         MIN(`window_open_date`) AS first_open, MAX(`window_close_date`) AS last_close,\n         CONCAT_WS(', ', COLLECT_SET(`availability_status`)) AS statuses\n  FROM `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`content_window`\n  WHERE `title_id` IN (SELECT `title_id` FROM t)\n  GROUP BY `title_id`, `territory_id`\n)\nSELECT t.`season_number`, tr.`name` AS territory, tr.`territory_group`, v.sessions, v.viewers,\n       CAST(v.first_view AS DATE) AS first_view, CAST(v.last_view AS DATE) AS last_view,\n       COALESCE(w.windows,0) AS windows, w.first_open, w.last_close, w.statuses,\n       CASE WHEN w.has_active = 1 THEN 'Active' WHEN w.windows IS NULL THEN 'No window ever' ELSE 'Not active' END AS window_status\nFROM v JOIN t ON v.`title_id` = t.`title_id`\nJOIN `serverless_lakebase_praneeth_catalog`.`hoshi_rights`.`territory` tr ON v.`territory_id` = tr.`territory_id`\nLEFT JOIN w ON v.`title_id` = w.`title_id` AND v.`territory_id` = w.`territory_id`\nORDER BY t.`season_number`, CASE WHEN w.has_active = 1 THEN 1 ELSE 0 END, v.sessions DESC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_content.content_episode",
+       "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+       "serverless_lakebase_praneeth_catalog.hoshi_distribution.playback_session",
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.content_window",
+       "serverless_lakebase_praneeth_catalog.hoshi_rights.territory",
+       "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "th06.1": [
+   {
+    "trace_id": "tr-8f01de948f7b28bcc677ab1547ed90dd",
+    "tools": [
+     {
+      "tool": "system_ai_genie_one_mcp__genie_ask",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [],
+      "tables": [],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     },
+     {
+      "tool": "system_ai_genie_one_mcp__genie_poll_response",
+      "route": "genie_one",
+      "genie_space_id": null,
+      "conversation_id": null,
+      "sql": [
+       "SELECT `partner_type`, COUNT(DISTINCT `partner_id`) AS total_partners,\n COUNT(DISTINCT CASE WHEN `relationship_status`='Active' THEN `partner_id` END) AS active_partners,\n concat_ws(', ', sort_array(collect_set(`relationship_status`))) AS statuses\nFROM `serverless_lakebase_praneeth_catalog`.`hoshi_partner`.`partner`\nGROUP BY ROLLUP(`partner_type`) ORDER BY `partner_type` IS NULL, total_partners DESC"
+      ],
+      "tables": [
+       "serverless_lakebase_praneeth_catalog.hoshi_partner.partner"
+      ],
+      "out_of_scope": [],
+      "sql_not_analysed": 0
+     }
+    ]
+   }
+  ],
+  "th06.2": [
+   {
+    "trace_id": "tr-654b2f27a6d93c7c04f2f652bdeeca0a",
+    "tools": []
+   }
+  ]
+ }
+}

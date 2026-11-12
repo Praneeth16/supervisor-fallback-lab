@@ -1,0 +1,306 @@
+{
+  "default": {
+    "genie_one": {
+      "answer": "Which part of the business do you mean? I can answer questions about subscribers, billing, content, viewing, rights, sales and partners. Tell me the topic and the period.",
+      "routes": [],
+      "sql": [],
+      "tables": [],
+      "out_of_scope_tables": [],
+      "latency_s": 9.6,
+      "approvals": 0,
+      "items": [
+        {
+          "type": "message",
+          "role": "assistant",
+          "content": [
+            {
+              "type": "output_text",
+              "text": "Which part of the business do you mean? I can answer questions about subscribers, billing, content, viewing, rights, sales and partners. Tell me the topic and the period."
+            }
+          ]
+        }
+      ]
+    },
+    "custom_agent": {
+      "answer": "Which part of the business do you mean? I can answer questions about subscribers, billing, content, viewing, rights, sales and partners. Please tell me the topic and the period.",
+      "routes": [],
+      "sql": [],
+      "tables": [],
+      "out_of_scope_tables": [],
+      "latency_s": 11.2,
+      "approvals": 0,
+      "items": [
+        {
+          "type": "message",
+          "role": "assistant",
+          "content": [
+            {
+              "type": "output_text",
+              "text": "Which part of the business do you mean? I can answer questions about subscribers, billing, content, viewing, rights, sales and partners. Please tell me the topic and the period."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "matches": [
+    {
+      "keywords": [
+        "subscriber",
+        "paying",
+        "plan"
+      ],
+      "replies": {
+        "genie_one": {
+          "answer": "We have 862,441 paying subscribers. Basic has 418,220, Standard has 302,914 and Premium has 141,307.",
+          "routes": [
+            "genie:subscribers_revenue"
+          ],
+          "sql": [
+            "SELECT plan_code, COUNT(*) AS paying_subscribers FROM serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber_account WHERE status = 'active' GROUP BY plan_code ORDER BY plan_code"
+          ],
+          "tables": [
+            "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber_account"
+          ],
+          "out_of_scope_tables": [],
+          "latency_s": 25.9,
+          "approvals": 0,
+          "items": [
+            {
+              "type": "function_call",
+              "call_id": "call_1",
+              "name": "genie_subscribers_revenue",
+              "arguments": "{\"input\": \"How many paying subscribers do we have right now, split by plan?\"}"
+            },
+            {
+              "type": "function_call_output",
+              "call_id": "call_1",
+              "output": "genie:subscribers_revenue returned the result.\n```sql\nSELECT plan_code, COUNT(*) AS paying_subscribers FROM serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber_account WHERE status = 'active' GROUP BY plan_code ORDER BY plan_code\n```"
+            },
+            {
+              "type": "message",
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "output_text",
+                  "text": "We have 862,441 paying subscribers. Basic has 418,220, Standard has 302,914 and Premium has 141,307."
+                }
+              ]
+            }
+          ]
+        },
+        "custom_agent": {
+          "answer": "There are 862,441 paying subscribers: 418,220 on Basic, 302,914 on Standard and 141,307 on Premium.",
+          "routes": [
+            "genie:subscribers_revenue"
+          ],
+          "sql": [
+            "SELECT plan_code, COUNT(*) AS paying_subscribers FROM serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber_account WHERE status = 'active' GROUP BY plan_code ORDER BY plan_code"
+          ],
+          "tables": [
+            "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber_account"
+          ],
+          "out_of_scope_tables": [],
+          "latency_s": 34.7,
+          "approvals": 0,
+          "items": [
+            {
+              "type": "function_call",
+              "call_id": "call_1",
+              "name": "genie_subscribers_revenue",
+              "arguments": "{\"input\": \"How many paying subscribers do we have right now, split by plan?\"}"
+            },
+            {
+              "type": "function_call_output",
+              "call_id": "call_1",
+              "output": "genie:subscribers_revenue returned the result.\n```sql\nSELECT plan_code, COUNT(*) AS paying_subscribers FROM serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber_account WHERE status = 'active' GROUP BY plan_code ORDER BY plan_code\n```"
+            },
+            {
+              "type": "message",
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "output_text",
+                  "text": "There are 862,441 paying subscribers: 418,220 on Basic, 302,914 on Standard and 141,307 on Premium."
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "keywords": [
+        "watch",
+        "title"
+      ],
+      "replies": {
+        "genie_one": {
+          "answer": "The top five titles last week were Dungeon Cafe (318,400 hours), Moonlit Relay (291,050), Paper Lantern Hero (260,877), Kiyoshi Inn (214,503) and Glass Sakura (199,760).",
+          "routes": [
+            "genie:content_viewing"
+          ],
+          "sql": [
+            "SELECT t.title_name, ROUND(SUM(v.watch_seconds) / 3600, 0) AS watch_hours FROM serverless_lakebase_praneeth_catalog.hoshi_distribution.viewing_session v JOIN serverless_lakebase_praneeth_catalog.hoshi_content.title t ON v.title_id = t.title_id WHERE v.session_date >= '2026-11-02' AND v.session_date < '2026-11-09' GROUP BY t.title_name ORDER BY watch_hours DESC LIMIT 5"
+          ],
+          "tables": [
+            "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+            "serverless_lakebase_praneeth_catalog.hoshi_distribution.viewing_session"
+          ],
+          "out_of_scope_tables": [],
+          "latency_s": 29.4,
+          "approvals": 0,
+          "items": [
+            {
+              "type": "function_call",
+              "call_id": "call_1",
+              "name": "genie_content_viewing",
+              "arguments": "{\"input\": \"Which five titles had the most watch hours last week?\"}"
+            },
+            {
+              "type": "function_call_output",
+              "call_id": "call_1",
+              "output": "genie:content_viewing returned the result.\n```sql\nSELECT t.title_name, ROUND(SUM(v.watch_seconds) / 3600, 0) AS watch_hours FROM serverless_lakebase_praneeth_catalog.hoshi_distribution.viewing_session v JOIN serverless_lakebase_praneeth_catalog.hoshi_content.title t ON v.title_id = t.title_id WHERE v.session_date >= '2026-11-02' AND v.session_date < '2026-11-09' GROUP BY t.title_name ORDER BY watch_hours DESC LIMIT 5\n```"
+            },
+            {
+              "type": "message",
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "output_text",
+                  "text": "The top five titles last week were Dungeon Cafe (318,400 hours), Moonlit Relay (291,050), Paper Lantern Hero (260,877), Kiyoshi Inn (214,503) and Glass Sakura (199,760)."
+                }
+              ]
+            }
+          ]
+        },
+        "custom_agent": {
+          "answer": "The top five titles last week were Dungeon Cafe (318,400 hours), Moonlit Relay (291,050), Paper Lantern Hero (260,877), Kiyoshi Inn (214,503) and Glass Sakura (199,760).",
+          "routes": [
+            "genie:content_viewing"
+          ],
+          "sql": [
+            "SELECT t.title_name, ROUND(SUM(v.watch_seconds) / 3600, 0) AS watch_hours FROM serverless_lakebase_praneeth_catalog.hoshi_distribution.viewing_session v JOIN serverless_lakebase_praneeth_catalog.hoshi_content.title t ON v.title_id = t.title_id WHERE v.session_date >= '2026-11-02' AND v.session_date < '2026-11-09' GROUP BY t.title_name ORDER BY watch_hours DESC LIMIT 5"
+          ],
+          "tables": [
+            "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+            "serverless_lakebase_praneeth_catalog.hoshi_distribution.viewing_session"
+          ],
+          "out_of_scope_tables": [],
+          "latency_s": 35.4,
+          "approvals": 0,
+          "items": [
+            {
+              "type": "function_call",
+              "call_id": "call_1",
+              "name": "genie_content_viewing",
+              "arguments": "{\"input\": \"Which five titles had the most watch hours last week?\"}"
+            },
+            {
+              "type": "function_call_output",
+              "call_id": "call_1",
+              "output": "genie:content_viewing returned the result.\n```sql\nSELECT t.title_name, ROUND(SUM(v.watch_seconds) / 3600, 0) AS watch_hours FROM serverless_lakebase_praneeth_catalog.hoshi_distribution.viewing_session v JOIN serverless_lakebase_praneeth_catalog.hoshi_content.title t ON v.title_id = t.title_id WHERE v.session_date >= '2026-11-02' AND v.session_date < '2026-11-09' GROUP BY t.title_name ORDER BY watch_hours DESC LIMIT 5\n```"
+            },
+            {
+              "type": "message",
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "output_text",
+                  "text": "The top five titles last week were Dungeon Cafe (318,400 hours), Moonlit Relay (291,050), Paper Lantern Hero (260,877), Kiyoshi Inn (214,503) and Glass Sakura (199,760)."
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "keywords": [
+        "licen",
+        "fee",
+        "territor"
+      ],
+      "replies": {
+        "genie_one": {
+          "answer": "We paid 2,450,000 US dollars for Japan, 1,980,000 for the United States and 640,000 for Brazil.",
+          "routes": [
+            "genie_one"
+          ],
+          "sql": [
+            "SELECT l.territory_code, SUM(l.fee_usd) AS fees_usd FROM serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement l JOIN serverless_lakebase_praneeth_catalog.hoshi_content.title t ON l.title_id = t.title_id WHERE t.title_name = 'Dungeon Cafe' GROUP BY l.territory_code ORDER BY fees_usd DESC"
+          ],
+          "tables": [
+            "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+            "serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement"
+          ],
+          "out_of_scope_tables": [],
+          "latency_s": 22.4,
+          "approvals": 0,
+          "items": [
+            {
+              "type": "function_call",
+              "call_id": "call_1",
+              "name": "genie_one_genie_ask",
+              "arguments": "{\"input\": \"What did we pay in licence fees for Dungeon Cafe, by territory?\"}"
+            },
+            {
+              "type": "function_call_output",
+              "call_id": "call_1",
+              "output": "genie_one returned the result.\n```sql\nSELECT l.territory_code, SUM(l.fee_usd) AS fees_usd FROM serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement l JOIN serverless_lakebase_praneeth_catalog.hoshi_content.title t ON l.title_id = t.title_id WHERE t.title_name = 'Dungeon Cafe' GROUP BY l.territory_code ORDER BY fees_usd DESC\n```"
+            },
+            {
+              "type": "message",
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "output_text",
+                  "text": "We paid 2,450,000 US dollars for Japan, 1,980,000 for the United States and 640,000 for Brazil."
+                }
+              ]
+            }
+          ]
+        },
+        "custom_agent": {
+          "answer": "We paid 2,450,000 US dollars for Japan, 1,980,000 for the United States and 640,000 for Brazil.",
+          "routes": [
+            "fallback_agent"
+          ],
+          "sql": [
+            "SELECT l.territory_code, SUM(l.fee_usd) AS fees_usd FROM serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement l JOIN serverless_lakebase_praneeth_catalog.hoshi_content.title t ON l.title_id = t.title_id WHERE t.title_name = 'Dungeon Cafe' GROUP BY l.territory_code ORDER BY fees_usd DESC"
+          ],
+          "tables": [
+            "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+            "serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement"
+          ],
+          "out_of_scope_tables": [],
+          "latency_s": 40.1,
+          "approvals": 1,
+          "items": [
+            {
+              "type": "function_call",
+              "call_id": "call_1",
+              "name": "ask_fallback_agent",
+              "arguments": "{\"input\": \"What did we pay in licence fees for Dungeon Cafe, by territory?\"}"
+            },
+            {
+              "type": "function_call_output",
+              "call_id": "call_1",
+              "output": "fallback_agent returned the result.\n```sql\nSELECT l.territory_code, SUM(l.fee_usd) AS fees_usd FROM serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement l JOIN serverless_lakebase_praneeth_catalog.hoshi_content.title t ON l.title_id = t.title_id WHERE t.title_name = 'Dungeon Cafe' GROUP BY l.territory_code ORDER BY fees_usd DESC\n```"
+            },
+            {
+              "type": "message",
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "output_text",
+                  "text": "We paid 2,450,000 US dollars for Japan, 1,980,000 for the United States and 640,000 for Brazil."
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

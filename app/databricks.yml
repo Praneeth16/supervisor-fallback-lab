@@ -1,0 +1,38 @@
+# The lab UI as a Databricks App. Only app/backend is uploaded: it holds the FastAPI code and the
+# built frontend (backend/static), so no Node build runs on the platform.
+bundle:
+  name: hoshi_fallback_lab_ui
+
+variables:
+  warehouse_id:
+    description: SQL warehouse the app reads the evaluation tables with
+
+sync:
+  include:
+    - backend/static/**   # build output is gitignored, so it has to be included by name
+    - backend/app.yaml    # written by scripts/render_app_config.py from lab.yaml, also gitignored
+
+resources:
+  apps:
+    hoshi_fallback_lab:
+      name: hoshi-fallback-lab
+      description: "Supervisor fallback lab: ask both supervisors, read the benchmark, inspect governance"
+      source_code_path: ./backend
+      # /api/ask calls the supervisors as the signed-in user, so Genie One and the fallback agent
+      # run with that user's permissions.
+      user_api_scopes:
+        - serving.serving-endpoints
+        - sql
+        - ai-gateway
+        - genie
+        - dashboards.genie
+      resources:
+        - name: sql-warehouse
+          sql_warehouse:
+            id: ${var.warehouse_id}
+            permission: CAN_USE
+
+# The workspace comes from the CLI profile passed on the command line (make passes --profile).
+targets:
+  dev:
+    default: true

@@ -1,0 +1,2 @@
+genie_one: n=66 passed=82% correct=83% route=88% scope=98% behaviour=94% clear=85% false_fallback=0% out_of_scope_rows=1
+custom_agent: n=66 passed=83% correct=83% route=91% scope=100% behaviour=94% clear=86% false_fallback=0% out_of_scope_rows=0

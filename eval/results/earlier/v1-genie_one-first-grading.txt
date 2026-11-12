@@ -1,0 +1,1 @@
+genie_one: n=74 passed=88% correct=88% route=96% scope=100% behaviour=96% clear=82% false_fallback=0% out_of_scope_rows=0

@@ -1,0 +1,46 @@
+bundle:
+  name: supervisor_fallback_lab
+
+# The data job only needs lab.yaml and data_model/. Everything else stays local.
+sync:
+  exclude:
+    - app/**
+    - custom_agent/**
+    - docs/**
+    - eval/**
+    - genie/**
+    - genie_one_scope/**
+    - scripts/**
+    - spikes/**
+    - supervisors/**
+
+variables:
+  as_of:
+    description: "As-of date YYYY-MM-DD. Empty means yesterday on the job's clock."
+    default: ""
+
+# The workspace comes from the CLI profile passed on the command line (make passes --profile).
+targets:
+  dev:
+    default: true
+
+resources:
+  jobs:
+    hoshi_generate_data:
+      name: hoshi_generate_data
+      description: "Hoshi Stream synthetic data: fills the hoshi_* schemas from the MVM subset, seeded by a fixed seed and the as-of date."
+      max_concurrent_runs: 1
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+      tasks:
+        - task_key: generate
+          environment_key: default
+          spark_python_task:
+            python_file: ./data_model/generate.py
+            parameters:
+              - --root
+              - ${workspace.file_path}
+              - --as-of
+              - ${var.as_of}
