@@ -6,6 +6,7 @@ export interface ArmInfo {
   label: string;
   fallback: string;
   endpoint: string;
+  experiment_id: string | null;
 }
 
 export interface Scope {
@@ -21,6 +22,8 @@ export interface Config {
   scope: Scope;
   categories: string[];
   workspace_host: string | null;
+  fixtures: boolean;
+  demand_rule: { min_questions: number; min_people: number };
 }
 
 export interface RunInfo {
@@ -230,7 +233,7 @@ export interface HistoryMessage {
   content: string;
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init);
   if (!response.ok) {
     let detail = response.statusText || `Request failed with status ${response.status}`;

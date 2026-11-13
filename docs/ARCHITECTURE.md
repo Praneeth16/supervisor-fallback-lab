@@ -94,6 +94,10 @@ flowchart LR
 ## Identities
 
 - The UI and the benchmark call supervisors as the signed-in user.
+- The UI stores chats, ratings and votes as its own service principal, in three tables of the lab schema.
+  The person is taken from the identity headers Databricks Apps adds to each request. A rating is also
+  written to the supervisor's MLflow trace as a human assessment, again by the service principal, with
+  the person's email as the source.
 - Genie Agents and Genie One run as that user.
 - The fallback agent receives the user's token from the supervisor and runs SQL with it. As deployed
   it refuses to answer when no user token arrives (`AGENT_REQUIRE_USER_TOKEN=1`). Its own service

@@ -32,11 +32,36 @@ def load_scope() -> Scope:
     )
 
 
-def read_table_doc(table: str) -> str:
+def read_table_doc(table: str, columns: str | None = None) -> str:
     name = table.strip().strip("`").lower()
     if name not in load_scope().allowed:
         return f"`{table}` is not in scope. Use list_tables to see what is available."
-    return (CONTEXT_DIR / "tables" / f"{name}.md").read_text()
+    doc = (CONTEXT_DIR / "tables" / f"{name}.md").read_text()
+    return filter_columns(doc, columns) if columns else doc
+
+
+def filter_columns(doc: str, pattern: str) -> str:
+    """The table description with only the column rows that match `pattern`.
+
+    For tables with many columns. Everything outside the column table stays: the table comment, the
+    row count, the keys and the data owner's notes. A row matches on its name, type, description or
+    sample values.
+    """
+    try:
+        regex = re.compile(pattern, re.IGNORECASE)
+    except re.error as e:
+        return f"Invalid columns pattern: {e}"
+    lines = doc.splitlines()
+    start = next((n for n, line in enumerate(lines) if line.startswith("| column |")), None)
+    if start is None:
+        return doc
+    end = start + 2  # the header row and the separator row
+    while end < len(lines) and lines[end].startswith("|"):
+        end += 1
+    rows = lines[start + 2 : end]
+    kept = [row for row in rows if regex.search(row)]
+    note = f"({len(kept)} of {len(rows)} columns match `{pattern}`. Call read_table without columns to see all.)"
+    return "\n".join([*lines[: start + 2], *kept, "", note, *lines[end:]]) + "\n"
 
 
 def search_context(pattern: str, max_hits: int = 40) -> str:

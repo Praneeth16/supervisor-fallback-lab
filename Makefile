@@ -24,9 +24,11 @@ PROFILE     = $(call lab_value,['workspace']['profile'],workspace.profile)
 WH          = $(call lab_value,['workspace']['warehouse_id'],workspace.warehouse_id)
 ASOF        = $(call lab_value,['data']['as_of'],data.as_of)
 MODEL_AGENT = $(call lab_value,['models']['agent'],models.agent)
+# Optional agent.max_steps in lab.yaml. 20 when the key is missing.
+MAX_STEPS   = $(or $(shell $(PY) -c "import yaml;print((yaml.safe_load(open('lab.yaml')).get('agent') or {}).get('max_steps') or 20)" 2>/dev/null),20)
 EXP         = $(call state_value,experiment_id,run make tracing first)
 TRACE       = $(call state_value,trace_schema,run make tracing first)
-AGENTVARS   = --var=experiment_id=$(EXP) --var=warehouse_id=$(WH) --var=trace_schema=$(TRACE) --var=agent_model=$(MODEL_AGENT)
+AGENTVARS   = --var=experiment_id=$(EXP) --var=warehouse_id=$(WH) --var=trace_schema=$(TRACE) --var=agent_model=$(MODEL_AGENT) --var=max_steps=$(MAX_STEPS)
 REPLACE_FLAG = $(if $(filter 1,$(CONFIRM_REPLACE)),--replace)
 
 LABEL   ?= v1
@@ -34,11 +36,13 @@ BENCHMARK ?= eval/benchmark.yaml
 NOTES   ?=
 SERIES  ?=
 SAMPLES ?= 3
+FROM    ?= feedback
+N       ?=
 CONFIRM ?=
 CONFIRM_REPLACE ?=
 
 .PHONY: setup workbench tracing data agents scope agent ablation-agent ablation-agent-destroy supervisors overlap \
-	eval regrade direct verify-scope traces verify-direct load agreement gateway report app test lint teardown teardown-all
+	gold eval regrade direct verify-scope traces verify-direct load agreement gateway report app test lint teardown teardown-all
 
 setup:            ## lab.yaml from the example if missing, and Python environments: root, custom_agent, app/backend
 	@test -f lab.yaml || { cp lab.example.yaml lab.yaml; echo "Created lab.yaml from lab.example.yaml. Edit the workspace values in it before the next step."; }
@@ -85,6 +89,9 @@ supervisors:      ## Supervisor A (Genie One) and Supervisor B (custom agent)
 overlap:          ## Fail if a benchmark question matches an example the agents were given
 	$(PY) scripts/check_overlap.py
 
+gold:             ## Draft benchmark questions with reference SQL from a larger model: make gold FROM=feedback | context | my_questions.txt
+	PYTHONUNBUFFERED=1 $(PY) eval/build_benchmark.py --from $(FROM) $(if $(N),--n $(N))
+
 eval:             ## Benchmark both supervisors: make eval LABEL=v1 NOTES="first run" (hard set: BENCHMARK=eval/benchmark_hard.yaml, one series: SERIES=...)
 	PYTHONUNBUFFERED=1 $(PY) eval/run_eval.py --benchmark $(BENCHMARK) --label $(LABEL) --notes "$(NOTES)" $(if $(SERIES),--series $(SERIES))
 
@@ -115,12 +122,13 @@ gateway:          ## Copy Unity Gateway usage for a run into the lab schema (usa
 report:           ## Summary of the saved runs
 	$(PY) eval/report.py
 
-app:              ## Lab UI: build frontend, deploy app, grants
+app:              ## Lab UI: build frontend, deploy app, grants, chat tables
 	cd app/frontend && npm install && npm run build
 	$(PY) scripts/render_app_config.py
 	cd app && databricks bundle deploy --profile $(PROFILE) --var warehouse_id=$(WH)
 	cd app && databricks bundle run --profile $(PROFILE) --var warehouse_id=$(WH) hoshi_fallback_lab
 	$(PY) scripts/grants.py ui
+	$(PY) scripts/setup_chat.py
 
 test:             ## Unit tests: root, custom_agent, app/backend
 	$(PY) -m pytest -q

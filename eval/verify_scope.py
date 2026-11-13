@@ -120,9 +120,7 @@ def main():
     else:
         test_id, windows = windows_of_direct(args.direct)
         run_label = f"direct:{test_id}"
-        scope = cfg["scope"]
-        fallback_schemas = {schema(cfg, d).lower() for d in {*scope["fallback"], *scope["join_only"]}}
-        allowed = frozenset(t for t in allowed_tables(cfg) if t.rsplit(".", 1)[0] in fallback_schemas)
+        allowed = allowed_tables(cfg, fallback_only=True)
 
     workspace_id = w.get_workspace_id()
     records = []

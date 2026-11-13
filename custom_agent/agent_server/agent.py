@@ -14,6 +14,7 @@ from uuid import uuid4
 
 import mlflow
 from agents import Agent, RunContextWrapper, Runner, function_tool, set_default_openai_api, set_default_openai_client
+from agents.exceptions import MaxTurnsExceeded
 from agents.tracing import set_trace_processors
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import DatabricksError
@@ -25,11 +26,14 @@ from agent_server.gateway import run_statement
 from agent_server.guard import check_sql
 from agent_server.history import normalize_history_items
 from agent_server.scope import load_scope, read_table_doc, search_context
+from agent_server.steps import steps_line
 
 logger = logging.getLogger(__name__)
 
 MODEL = os.environ.get("AGENT_MODEL", "system.ai.claude-sonnet-5-5")
 MAX_ROWS_SHOWN = 50
+# How many model turns one question may take. A lower number answers faster and gives up sooner.
+MAX_TURNS = int(os.environ.get("AGENT_MAX_TURNS") or 20)
 # "off" turns the table allowlist off. It exists only for the guard-off ablation app in the lab.
 GUARD_ENFORCED = os.environ.get("AGENT_GUARD", "enforce") != "off"
 # In the deployed app SQL must run as the caller. Without a forwarded user token the agent stops,
@@ -51,7 +55,8 @@ fixed set of Unity Catalog tables.
 
 How to work:
 1. Call list_tables to see what is in scope. Call read_table for every table you plan to use;
-   never guess column names or values. Use search_tables to find a column or term.
+   never guess column names or values. Use search_tables to find a column or term. For a table
+   with many columns, pass `columns` to read_table to see only the columns that match a word.
 2. Write one Databricks SQL SELECT with fully qualified names (catalog.schema.table) and call run_sql.
 3. If run_sql answers REJECTED, the table or operation is outside your scope. Do not look for a
    workaround. If the question cannot be answered from tables in scope, say so plainly and name
@@ -107,13 +112,16 @@ def list_tables() -> str:
 
 
 @function_tool
-def read_table(table: str) -> str:
+def read_table(table: str, columns: str | None = None) -> str:
     """Read the description of one table: columns, types, meanings, keys and sample values.
 
     Args:
         table: Fully qualified table name, catalog.schema.table.
+        columns: Optional word or regular expression (case-insensitive). When given, only the
+            columns whose name, type, description or values match are listed. Leave it out to
+            see every column.
     """
-    return read_table_doc(table)
+    return read_table_doc(table, columns)
 
 
 @function_tool
@@ -158,10 +166,12 @@ def create_agent() -> Agent:
     )
 
 
-def _footer(state: RequestState) -> str:
+def _footer(state: RequestState, steps: str | None = None) -> str:
     # The evaluation splits an answer at the "---" and "Source:" lines below: SQL under them ran, SQL
     # above them was only shown (app/backend/labcore/parse.py, _AGENT_FOOTER). Change both together.
     lines = ["", "", "---", "Source: tables that are not curated for self-service. Treat the figures as provisional."]
+    if steps:
+        lines.append(steps)
     if state.tables_used:
         lines.append("Tables used: " + ", ".join(sorted(state.tables_used)))
     for sql in state.sql_run:
@@ -171,6 +181,16 @@ def _footer(state: RequestState) -> str:
     lines.append(f"Queries ran as: {'the calling user' if state.identity == 'user' else 'the agent app'}")
     lines.append(f"Agent tokens: {state.tokens:,}")
     return "\n".join(lines)
+
+
+def _message(text: str) -> dict:
+    return {
+        "type": "message",
+        "id": str(uuid4()),
+        "role": "assistant",
+        "status": "completed",
+        "content": [{"type": "output_text", "text": text, "annotations": []}],
+    }
 
 
 def _append_footer(items: list[dict], footer: str) -> list[dict]:
@@ -186,15 +206,7 @@ def _append_footer(items: list[dict], footer: str) -> list[dict]:
                 if part.get("type") == "output_text":
                     part["text"] += footer
                     return items
-    items.append(
-        {
-            "type": "message",
-            "id": str(uuid4()),
-            "role": "assistant",
-            "status": "completed",
-            "content": [{"type": "output_text", "text": footer.lstrip(), "annotations": []}],
-        }
-    )
+    items.append(_message(footer.lstrip()))
     return items
 
 
@@ -203,9 +215,14 @@ async def answer(messages: list[dict], user_token: str | None) -> tuple[list[dic
     state = _request_state(user_token)
     if REQUIRE_USER_TOKEN and state.identity != "user":
         return _append_footer([], NO_USER_TOKEN), state
-    result = await Runner.run(create_agent(), messages, context=state, max_turns=20)
+    try:
+        result = await Runner.run(create_agent(), messages, context=state, max_turns=MAX_TURNS)
+    except MaxTurnsExceeded:
+        text = f"I could not finish this within the limit of {MAX_TURNS} steps, so I have no answer."
+        return _append_footer([_message(text)], _footer(state)), state
     state.tokens = result.context_wrapper.usage.total_tokens
-    items = _append_footer([item.to_input_item() for item in result.new_items], _footer(state))
+    items = [item.to_input_item() for item in result.new_items]
+    items = _append_footer(items, _footer(state, steps_line(items)))
     mlflow.update_current_trace(
         tags={
             "sql_identity": state.identity,

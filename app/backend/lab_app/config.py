@@ -56,6 +56,11 @@ class Settings:
     brand: str
     scope: dict
     workspace_host: str | None
+    experiments: dict[str, str] | None = None  # MLflow experiment of each supervisor, for trace links
+    demand_min_questions: int = 5  # fallback questions on a table before it is flagged for a curated agent
+    demand_min_people: int = 2
+    dev_user: str = "you@example.com"  # who you are when the app runs outside Databricks Apps
+    fixture_pace_s: float = 0.6  # seconds between replayed steps with fixture data
 
     @property
     def schema_prefix(self) -> str:
@@ -82,8 +87,23 @@ class Settings:
             },
             brand=env.get("LAB_BRAND", DEFAULT_BRAND),
             scope=scope,
-            workspace_host=env.get("DATABRICKS_HOST") or None,
+            workspace_host=_host(env.get("DATABRICKS_HOST")),
+            experiments={
+                "genie_one": env.get("SUPERVISOR_A_EXPERIMENT", ""),
+                "custom_agent": env.get("SUPERVISOR_B_EXPERIMENT", ""),
+            },
+            demand_min_questions=int(env.get("LAB_DEMAND_MIN_QUESTIONS", "5")),
+            demand_min_people=int(env.get("LAB_DEMAND_MIN_PEOPLE", "2")),
+            dev_user=env.get("LAB_DEV_USER", "you@example.com"),
+            fixture_pace_s=float(env.get("LAB_FIXTURE_PACE_S", "0.6")),
         )
+
+
+def _host(value: str | None) -> str | None:
+    """Databricks Apps sets DATABRICKS_HOST without a scheme. Links need one."""
+    if not value:
+        return None
+    return value if value.startswith("http") else f"https://{value}"
 
 
 def config_payload(settings: Settings) -> dict:
@@ -95,10 +115,13 @@ def config_payload(settings: Settings) -> dict:
                 "label": ARM_TEXT[arm]["label"],
                 "fallback": ARM_TEXT[arm]["fallback"],
                 "endpoint": settings.endpoints[arm],
+                "experiment_id": (settings.experiments or {}).get(arm) or None,
             }
             for arm in ARMS
         ],
         "scope": settings.scope,
         "categories": list(CATEGORIES),
         "workspace_host": settings.workspace_host,
+        "fixtures": settings.fixtures,
+        "demand_rule": {"min_questions": settings.demand_min_questions, "min_people": settings.demand_min_people},
     }

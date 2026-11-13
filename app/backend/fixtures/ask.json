@@ -1,306 +1,776 @@
 {
-  "default": {
+ "default": {
+  "genie_one": {
+   "answer": "Which part of the business do you mean? I can answer questions about subscribers, billing, content, viewing, rights, sales and partners. Tell me the topic and the period.",
+   "routes": [],
+   "sql": [],
+   "tables": [],
+   "out_of_scope_tables": [],
+   "latency_s": 9.6,
+   "approvals": 0,
+   "items": [
+    {
+     "type": "message",
+     "role": "assistant",
+     "content": [
+      {
+       "type": "output_text",
+       "text": "Which part of the business do you mean? I can answer questions about subscribers, billing, content, viewing, rights, sales and partners. Tell me the topic and the period."
+      }
+     ]
+    }
+   ]
+  },
+  "custom_agent": {
+   "answer": "Which part of the business do you mean? I can answer questions about subscribers, billing, content, viewing, rights, sales and partners. Please tell me the topic and the period.",
+   "routes": [],
+   "sql": [],
+   "tables": [],
+   "out_of_scope_tables": [],
+   "latency_s": 11.2,
+   "approvals": 0,
+   "items": [
+    {
+     "type": "message",
+     "role": "assistant",
+     "content": [
+      {
+       "type": "output_text",
+       "text": "Which part of the business do you mean? I can answer questions about subscribers, billing, content, viewing, rights, sales and partners. Please tell me the topic and the period."
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "matches": [
+  {
+   "keywords": [
+    "nyctaxi",
+    "samples."
+   ],
+   "replies": {
     "genie_one": {
-      "answer": "Which part of the business do you mean? I can answer questions about subscribers, billing, content, viewing, rights, sales and partners. Tell me the topic and the period.",
-      "routes": [],
-      "sql": [],
-      "tables": [],
-      "out_of_scope_tables": [],
-      "latency_s": 9.6,
-      "approvals": 0,
-      "items": [
+     "answer": "The table `samples.nyctaxi.trips` has **21,932** rows.\n\n[Explore in Databricks](https://example-workspace.cloud.databricks.com/one/chat/threads/39d1f8ee52a447819c946992fc2ee1d7)",
+     "routes": [
+      "genie_one"
+     ],
+     "sql": [
+      "SELECT COUNT(*) AS n FROM samples.nyctaxi.trips"
+     ],
+     "tables": [
+      "samples.nyctaxi.trips"
+     ],
+     "out_of_scope_tables": [
+      "samples.nyctaxi.trips"
+     ],
+     "latency_s": 38.9,
+     "approvals": 0,
+     "trace_id": "tr-fixture-taxi-a",
+     "supervisor_tokens": 17820,
+     "items": [
+      {
+       "type": "message",
+       "id": "m",
+       "role": "assistant",
+       "content": [
         {
-          "type": "message",
-          "role": "assistant",
-          "content": [
-            {
-              "type": "output_text",
-              "text": "Which part of the business do you mean? I can answer questions about subscribers, billing, content, viewing, rights, sales and partners. Tell me the topic and the period."
-            }
-          ]
+         "type": "output_text",
+         "text": "I'll forward that text to Genie One exactly as written."
         }
-      ]
+       ]
+      },
+      {
+       "type": "function_call",
+       "call_id": "ask_1",
+       "name": "system_ai_genie_one_mcp__genie_ask",
+       "arguments": "{\"question\": \"how many rows are in samples.nyctaxi.trips\"}"
+      },
+      {
+       "type": "function_call_output",
+       "call_id": "ask_1",
+       "name": "system_ai_genie_one_mcp__genie_ask",
+       "output": "{\"response_id\":\"aa\",\"conversation_id\":\"bb\",\"status\":\"in_progress\"}"
+      },
+      {
+       "type": "function_call",
+       "call_id": "poll_1",
+       "name": "system_ai_genie_one_mcp__genie_poll_response",
+       "arguments": "{\"conversation_id\": \"39d1\", \"response_id\": \"18c7\"}"
+      },
+      {
+       "type": "function_call_output",
+       "call_id": "poll_1",
+       "name": "system_ai_genie_one_mcp__genie_poll_response",
+       "output": "Still running. 1 progress step so far:\n\n  \u2022 Running SQL on samples.nyctaxi.trips to count rows.\n\n[Explore in Databricks](https://example-workspace.cloud.databricks.com/one/chat/threads/39d1f8ee52a447819c946992fc2ee1d7)"
+      },
+      {
+       "type": "function_call",
+       "call_id": "poll_2",
+       "name": "system_ai_genie_one_mcp__genie_poll_response",
+       "arguments": "{\"conversation_id\": \"39d1\", \"response_id\": \"18c7\"}"
+      },
+      {
+       "type": "function_call_output",
+       "call_id": "poll_2",
+       "name": "system_ai_genie_one_mcp__genie_poll_response",
+       "output": "<!-- agent: Genie has finished. -->\n\n**Status:** completed\n\n```sql\nSELECT COUNT(*) AS n FROM samples.nyctaxi.trips\n```\n\nQuery returned 1 row:\n\n| n |\n| --- |\n| 21932 |\n\n[Explore in Databricks](https://example-workspace.cloud.databricks.com/one/chat/threads/39d1f8ee52a447819c946992fc2ee1d7)"
+      },
+      {
+       "type": "message",
+       "id": "m",
+       "role": "assistant",
+       "content": [
+        {
+         "type": "output_text",
+         "text": "The table `samples.nyctaxi.trips` has **21,932** rows.\n\n[Explore in Databricks](https://example-workspace.cloud.databricks.com/one/chat/threads/39d1f8ee52a447819c946992fc2ee1d7)"
+        }
+       ]
+      }
+     ]
     },
     "custom_agent": {
-      "answer": "Which part of the business do you mean? I can answer questions about subscribers, billing, content, viewing, rights, sales and partners. Please tell me the topic and the period.",
-      "routes": [],
-      "sql": [],
-      "tables": [],
-      "out_of_scope_tables": [],
-      "latency_s": 11.2,
-      "approvals": 0,
-      "items": [
+     "answer": "The fallback agent declined. `samples.nyctaxi.trips` is not in its list of approved tables. It can answer from the Hoshi Stream rights, sales and partner tables.",
+     "routes": [
+      "fallback_agent"
+     ],
+     "sql": [],
+     "tables": [],
+     "out_of_scope_tables": [],
+     "latency_s": 17.6,
+     "approvals": 1,
+     "trace_id": "tr-fixture-taxi-b",
+     "supervisor_tokens": 10940,
+     "items": [
+      {
+       "type": "message",
+       "id": "m",
+       "role": "assistant",
+       "content": [
         {
-          "type": "message",
-          "role": "assistant",
-          "content": [
-            {
-              "type": "output_text",
-              "text": "Which part of the business do you mean? I can answer questions about subscribers, billing, content, viewing, rights, sales and partners. Please tell me the topic and the period."
-            }
-          ]
+         "type": "output_text",
+         "text": "I'll forward that text to the fallback agent exactly as written."
         }
-      ]
+       ]
+      },
+      {
+       "type": "mcp_approval_request",
+       "id": "appr_1",
+       "arguments": "{\"question\": \"how many rows are in samples.nyctaxi.trips\"}",
+       "name": "ask_fallback_agent",
+       "server_label": "hoshi-fallback-agent"
+      },
+      {
+       "type": "mcp_approval_response",
+       "approval_request_id": "appr_1",
+       "approve": true
+      },
+      {
+       "type": "function_call_output",
+       "call_id": "appr_1",
+       "name": "ask_fallback_agent",
+       "output": "I can't answer this. `samples.nyctaxi.trips` is not one of the tables I am allowed to query. I can answer from the Hoshi Stream rights, sales and partner tables.\n\n---\nSource: tables that are not curated for self-service. Treat the figures as provisional.\nSteps: list_tables\nQueries ran as: the calling user\nAgent tokens: 3,208"
+      },
+      {
+       "type": "message",
+       "id": "m",
+       "role": "assistant",
+       "content": [
+        {
+         "type": "output_text",
+         "text": "The fallback agent declined. `samples.nyctaxi.trips` is not in its list of approved tables. It can answer from the Hoshi Stream rights, sales and partner tables."
+        }
+       ]
+      }
+     ]
     }
+   }
   },
-  "matches": [
-    {
-      "keywords": [
-        "subscriber",
-        "paying",
-        "plan"
-      ],
-      "replies": {
-        "genie_one": {
-          "answer": "We have 862,441 paying subscribers. Basic has 418,220, Standard has 302,914 and Premium has 141,307.",
-          "routes": [
-            "genie:subscribers_revenue"
-          ],
-          "sql": [
-            "SELECT plan_code, COUNT(*) AS paying_subscribers FROM serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber_account WHERE status = 'active' GROUP BY plan_code ORDER BY plan_code"
-          ],
-          "tables": [
-            "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber_account"
-          ],
-          "out_of_scope_tables": [],
-          "latency_s": 25.9,
-          "approvals": 0,
-          "items": [
-            {
-              "type": "function_call",
-              "call_id": "call_1",
-              "name": "genie_subscribers_revenue",
-              "arguments": "{\"input\": \"How many paying subscribers do we have right now, split by plan?\"}"
-            },
-            {
-              "type": "function_call_output",
-              "call_id": "call_1",
-              "output": "genie:subscribers_revenue returned the result.\n```sql\nSELECT plan_code, COUNT(*) AS paying_subscribers FROM serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber_account WHERE status = 'active' GROUP BY plan_code ORDER BY plan_code\n```"
-            },
-            {
-              "type": "message",
-              "role": "assistant",
-              "content": [
-                {
-                  "type": "output_text",
-                  "text": "We have 862,441 paying subscribers. Basic has 418,220, Standard has 302,914 and Premium has 141,307."
-                }
-              ]
-            }
-          ]
-        },
-        "custom_agent": {
-          "answer": "There are 862,441 paying subscribers: 418,220 on Basic, 302,914 on Standard and 141,307 on Premium.",
-          "routes": [
-            "genie:subscribers_revenue"
-          ],
-          "sql": [
-            "SELECT plan_code, COUNT(*) AS paying_subscribers FROM serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber_account WHERE status = 'active' GROUP BY plan_code ORDER BY plan_code"
-          ],
-          "tables": [
-            "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber_account"
-          ],
-          "out_of_scope_tables": [],
-          "latency_s": 34.7,
-          "approvals": 0,
-          "items": [
-            {
-              "type": "function_call",
-              "call_id": "call_1",
-              "name": "genie_subscribers_revenue",
-              "arguments": "{\"input\": \"How many paying subscribers do we have right now, split by plan?\"}"
-            },
-            {
-              "type": "function_call_output",
-              "call_id": "call_1",
-              "output": "genie:subscribers_revenue returned the result.\n```sql\nSELECT plan_code, COUNT(*) AS paying_subscribers FROM serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber_account WHERE status = 'active' GROUP BY plan_code ORDER BY plan_code\n```"
-            },
-            {
-              "type": "message",
-              "role": "assistant",
-              "content": [
-                {
-                  "type": "output_text",
-                  "text": "There are 862,441 paying subscribers: 418,220 on Basic, 302,914 on Standard and 141,307 on Premium."
-                }
-              ]
-            }
-          ]
+  {
+   "keywords": [
+    "campaign"
+   ],
+   "replies": {
+    "genie_one": {
+     "answer": "**35 campaigns** have \"Live\" status right now, broken down by objective:\n\n- **Awareness**: 10 campaigns\n- **Conversion**: 9 campaigns\n- **Brand Launch**: 9 campaigns\n- **Consideration**: 7 campaigns\n\nAll 35 have an end date of 2026-11-09, so they look finished and not yet moved to Completed.\n\n[Explore in Databricks](https://example-workspace.cloud.databricks.com/one/chat/threads/39d1f8ee52a447819c946992fc2ee1d7)",
+     "routes": [
+      "genie_one"
+     ],
+     "sql": [
+      "SELECT c.campaign_type AS objective, COUNT(*) AS live_campaigns\nFROM serverless_lakebase_praneeth_catalog.hoshi_sales.campaign c\nWHERE c.campaign_status = 'Live'\nGROUP BY c.campaign_type ORDER BY live_campaigns DESC"
+     ],
+     "tables": [
+      "serverless_lakebase_praneeth_catalog.hoshi_sales.campaign"
+     ],
+     "out_of_scope_tables": [],
+     "latency_s": 56.3,
+     "approvals": 0,
+     "trace_id": "tr-fixture-campaign-a",
+     "supervisor_tokens": 26110,
+     "items": [
+      {
+       "type": "message",
+       "id": "m",
+       "role": "assistant",
+       "content": [
+        {
+         "type": "output_text",
+         "text": "I'll ask Genie One about live campaigns by objective, since advertising campaigns are not covered by the curated agents."
         }
+       ]
+      },
+      {
+       "type": "function_call",
+       "call_id": "ask_1",
+       "name": "system_ai_genie_one_mcp__genie_ask",
+       "arguments": "{\"question\": \"Hoshi Stream scope: answer only from the approved Hoshi Stream tables, metric views and dashboard named in the hoshi-data-scope skill. If they cannot answer the question, say so and stop.\\nhow many campaigns are live right now, by objective\"}"
+      },
+      {
+       "type": "function_call_output",
+       "call_id": "ask_1",
+       "name": "system_ai_genie_one_mcp__genie_ask",
+       "output": "{\"response_id\":\"18c7\",\"conversation_id\":\"39d1\",\"status\":\"in_progress\"}"
+      },
+      {
+       "type": "function_call",
+       "call_id": "poll_1",
+       "name": "system_ai_genie_one_mcp__genie_poll_response",
+       "arguments": "{\"conversation_id\": \"39d1\", \"response_id\": \"18c7\"}"
+      },
+      {
+       "type": "function_call_output",
+       "call_id": "poll_1",
+       "name": "system_ai_genie_one_mcp__genie_poll_response",
+       "output": "Still running \u2014 no progress steps yet. Call `genie_poll_response` again silently; no need to narrate yet."
+      },
+      {
+       "type": "function_call",
+       "call_id": "poll_2",
+       "name": "system_ai_genie_one_mcp__genie_poll_response",
+       "arguments": "{\"conversation_id\": \"39d1\", \"response_id\": \"18c7\"}"
+      },
+      {
+       "type": "function_call_output",
+       "call_id": "poll_2",
+       "name": "system_ai_genie_one_mcp__genie_poll_response",
+       "output": "Still running. 1 progress step so far:\n\n  \u2022 Thinking: Genie: none \u2014 I'll inspect the campaign table and the dashboard.\n\nBriefly share what Genie is doing with the user.\n\n[Explore in Databricks](https://example-workspace.cloud.databricks.com/one/chat/threads/39d1f8ee52a447819c946992fc2ee1d7)"
+      },
+      {
+       "type": "function_call",
+       "call_id": "poll_3",
+       "name": "system_ai_genie_one_mcp__genie_poll_response",
+       "arguments": "{\"conversation_id\": \"39d1\", \"response_id\": \"18c7\"}"
+      },
+      {
+       "type": "function_call_output",
+       "call_id": "poll_3",
+       "name": "system_ai_genie_one_mcp__genie_poll_response",
+       "output": "Still running. 3 progress steps so far:\n\n  \u2022 Thinking: Genie: none \u2014 I'll inspect the campaign table and the dashboard.\n  \u2022 Running SQL on hoshi_sales.campaign to count campaigns by status.\n  \u2022 Thinking: Live campaigns all end on 2026-11-09, so I'll check delivery on that day too.\n\nBriefly share what Genie is doing with the user.\n\n[Explore in Databricks](https://example-workspace.cloud.databricks.com/one/chat/threads/39d1f8ee52a447819c946992fc2ee1d7)"
+      },
+      {
+       "type": "function_call",
+       "call_id": "poll_4",
+       "name": "system_ai_genie_one_mcp__genie_poll_response",
+       "arguments": "{\"conversation_id\": \"39d1\", \"response_id\": \"18c7\"}"
+      },
+      {
+       "type": "function_call_output",
+       "call_id": "poll_4",
+       "name": "system_ai_genie_one_mcp__genie_poll_response",
+       "output": "<!-- agent: Genie has finished. -->\n\n**Status:** completed\n\n```sql\nSELECT c.campaign_type AS objective, COUNT(*) AS live_campaigns\nFROM serverless_lakebase_praneeth_catalog.hoshi_sales.campaign c\nWHERE c.campaign_status = 'Live'\nGROUP BY c.campaign_type ORDER BY live_campaigns DESC\n```\n\nQuery returned 4 rows:\n\n| objective | live_campaigns |\n| --- | --- |\n| Awareness | 10 |\n| Conversion | 9 |\n| Brand Launch | 9 |\n| Consideration | 7 |\n\n[Explore in Databricks](https://example-workspace.cloud.databricks.com/one/chat/threads/39d1f8ee52a447819c946992fc2ee1d7)"
+      },
+      {
+       "type": "message",
+       "id": "m",
+       "role": "assistant",
+       "content": [
+        {
+         "type": "output_text",
+         "text": "**35 campaigns** have \"Live\" status right now, broken down by objective:\n\n- **Awareness**: 10 campaigns\n- **Conversion**: 9 campaigns\n- **Brand Launch**: 9 campaigns\n- **Consideration**: 7 campaigns\n\nAll 35 have an end date of 2026-11-09, so they look finished and not yet moved to Completed.\n\n[Explore in Databricks](https://example-workspace.cloud.databricks.com/one/chat/threads/39d1f8ee52a447819c946992fc2ee1d7)"
+        }
+       ]
       }
+     ]
     },
-    {
-      "keywords": [
-        "watch",
-        "title"
-      ],
-      "replies": {
-        "genie_one": {
-          "answer": "The top five titles last week were Dungeon Cafe (318,400 hours), Moonlit Relay (291,050), Paper Lantern Hero (260,877), Kiyoshi Inn (214,503) and Glass Sakura (199,760).",
-          "routes": [
-            "genie:content_viewing"
-          ],
-          "sql": [
-            "SELECT t.title_name, ROUND(SUM(v.watch_seconds) / 3600, 0) AS watch_hours FROM serverless_lakebase_praneeth_catalog.hoshi_distribution.viewing_session v JOIN serverless_lakebase_praneeth_catalog.hoshi_content.title t ON v.title_id = t.title_id WHERE v.session_date >= '2026-11-02' AND v.session_date < '2026-11-09' GROUP BY t.title_name ORDER BY watch_hours DESC LIMIT 5"
-          ],
-          "tables": [
-            "serverless_lakebase_praneeth_catalog.hoshi_content.title",
-            "serverless_lakebase_praneeth_catalog.hoshi_distribution.viewing_session"
-          ],
-          "out_of_scope_tables": [],
-          "latency_s": 29.4,
-          "approvals": 0,
-          "items": [
-            {
-              "type": "function_call",
-              "call_id": "call_1",
-              "name": "genie_content_viewing",
-              "arguments": "{\"input\": \"Which five titles had the most watch hours last week?\"}"
-            },
-            {
-              "type": "function_call_output",
-              "call_id": "call_1",
-              "output": "genie:content_viewing returned the result.\n```sql\nSELECT t.title_name, ROUND(SUM(v.watch_seconds) / 3600, 0) AS watch_hours FROM serverless_lakebase_praneeth_catalog.hoshi_distribution.viewing_session v JOIN serverless_lakebase_praneeth_catalog.hoshi_content.title t ON v.title_id = t.title_id WHERE v.session_date >= '2026-11-02' AND v.session_date < '2026-11-09' GROUP BY t.title_name ORDER BY watch_hours DESC LIMIT 5\n```"
-            },
-            {
-              "type": "message",
-              "role": "assistant",
-              "content": [
-                {
-                  "type": "output_text",
-                  "text": "The top five titles last week were Dungeon Cafe (318,400 hours), Moonlit Relay (291,050), Paper Lantern Hero (260,877), Kiyoshi Inn (214,503) and Glass Sakura (199,760)."
-                }
-              ]
-            }
-          ]
-        },
-        "custom_agent": {
-          "answer": "The top five titles last week were Dungeon Cafe (318,400 hours), Moonlit Relay (291,050), Paper Lantern Hero (260,877), Kiyoshi Inn (214,503) and Glass Sakura (199,760).",
-          "routes": [
-            "genie:content_viewing"
-          ],
-          "sql": [
-            "SELECT t.title_name, ROUND(SUM(v.watch_seconds) / 3600, 0) AS watch_hours FROM serverless_lakebase_praneeth_catalog.hoshi_distribution.viewing_session v JOIN serverless_lakebase_praneeth_catalog.hoshi_content.title t ON v.title_id = t.title_id WHERE v.session_date >= '2026-11-02' AND v.session_date < '2026-11-09' GROUP BY t.title_name ORDER BY watch_hours DESC LIMIT 5"
-          ],
-          "tables": [
-            "serverless_lakebase_praneeth_catalog.hoshi_content.title",
-            "serverless_lakebase_praneeth_catalog.hoshi_distribution.viewing_session"
-          ],
-          "out_of_scope_tables": [],
-          "latency_s": 35.4,
-          "approvals": 0,
-          "items": [
-            {
-              "type": "function_call",
-              "call_id": "call_1",
-              "name": "genie_content_viewing",
-              "arguments": "{\"input\": \"Which five titles had the most watch hours last week?\"}"
-            },
-            {
-              "type": "function_call_output",
-              "call_id": "call_1",
-              "output": "genie:content_viewing returned the result.\n```sql\nSELECT t.title_name, ROUND(SUM(v.watch_seconds) / 3600, 0) AS watch_hours FROM serverless_lakebase_praneeth_catalog.hoshi_distribution.viewing_session v JOIN serverless_lakebase_praneeth_catalog.hoshi_content.title t ON v.title_id = t.title_id WHERE v.session_date >= '2026-11-02' AND v.session_date < '2026-11-09' GROUP BY t.title_name ORDER BY watch_hours DESC LIMIT 5\n```"
-            },
-            {
-              "type": "message",
-              "role": "assistant",
-              "content": [
-                {
-                  "type": "output_text",
-                  "text": "The top five titles last week were Dungeon Cafe (318,400 hours), Moonlit Relay (291,050), Paper Lantern Hero (260,877), Kiyoshi Inn (214,503) and Glass Sakura (199,760)."
-                }
-              ]
-            }
-          ]
+    "custom_agent": {
+     "answer": "**35 campaigns** are marked as live right now, broken down by objective:\n\n| Objective | Live campaigns |\n|---|---|\n| Awareness | 10 |\n| Conversion | 9 |\n| Brand Launch | 9 |\n| Consideration | 7 |\n\nAll 35 have an end date of 2026-11-09 (yesterday), so they appear to have finished but have not yet been moved to Completed.\n\nThese figures come from tables that are not curated for self-service, so treat them as provisional.",
+     "routes": [
+      "fallback_agent"
+     ],
+     "sql": [
+      "SELECT c.campaign_type AS objective, COUNT(*) AS live_campaigns\nFROM serverless_lakebase_praneeth_catalog.hoshi_sales.campaign c\nWHERE c.campaign_status = 'Live'\nGROUP BY c.campaign_type ORDER BY live_campaigns DESC\nLIMIT 1000"
+     ],
+     "tables": [
+      "serverless_lakebase_praneeth_catalog.hoshi_sales.campaign"
+     ],
+     "out_of_scope_tables": [],
+     "latency_s": 32.4,
+     "approvals": 1,
+     "trace_id": "tr-fixture-campaign-b",
+     "supervisor_tokens": 11259,
+     "items": [
+      {
+       "type": "message",
+       "id": "m",
+       "role": "assistant",
+       "content": [
+        {
+         "type": "output_text",
+         "text": "I'll query the fallback agent for information about live advertising campaigns by objective."
         }
-      }
-    },
-    {
-      "keywords": [
-        "licen",
-        "fee",
-        "territor"
-      ],
-      "replies": {
-        "genie_one": {
-          "answer": "We paid 2,450,000 US dollars for Japan, 1,980,000 for the United States and 640,000 for Brazil.",
-          "routes": [
-            "genie_one"
-          ],
-          "sql": [
-            "SELECT l.territory_code, SUM(l.fee_usd) AS fees_usd FROM serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement l JOIN serverless_lakebase_praneeth_catalog.hoshi_content.title t ON l.title_id = t.title_id WHERE t.title_name = 'Dungeon Cafe' GROUP BY l.territory_code ORDER BY fees_usd DESC"
-          ],
-          "tables": [
-            "serverless_lakebase_praneeth_catalog.hoshi_content.title",
-            "serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement"
-          ],
-          "out_of_scope_tables": [],
-          "latency_s": 22.4,
-          "approvals": 0,
-          "items": [
-            {
-              "type": "function_call",
-              "call_id": "call_1",
-              "name": "genie_one_genie_ask",
-              "arguments": "{\"input\": \"What did we pay in licence fees for Dungeon Cafe, by territory?\"}"
-            },
-            {
-              "type": "function_call_output",
-              "call_id": "call_1",
-              "output": "genie_one returned the result.\n```sql\nSELECT l.territory_code, SUM(l.fee_usd) AS fees_usd FROM serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement l JOIN serverless_lakebase_praneeth_catalog.hoshi_content.title t ON l.title_id = t.title_id WHERE t.title_name = 'Dungeon Cafe' GROUP BY l.territory_code ORDER BY fees_usd DESC\n```"
-            },
-            {
-              "type": "message",
-              "role": "assistant",
-              "content": [
-                {
-                  "type": "output_text",
-                  "text": "We paid 2,450,000 US dollars for Japan, 1,980,000 for the United States and 640,000 for Brazil."
-                }
-              ]
-            }
-          ]
-        },
-        "custom_agent": {
-          "answer": "We paid 2,450,000 US dollars for Japan, 1,980,000 for the United States and 640,000 for Brazil.",
-          "routes": [
-            "fallback_agent"
-          ],
-          "sql": [
-            "SELECT l.territory_code, SUM(l.fee_usd) AS fees_usd FROM serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement l JOIN serverless_lakebase_praneeth_catalog.hoshi_content.title t ON l.title_id = t.title_id WHERE t.title_name = 'Dungeon Cafe' GROUP BY l.territory_code ORDER BY fees_usd DESC"
-          ],
-          "tables": [
-            "serverless_lakebase_praneeth_catalog.hoshi_content.title",
-            "serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement"
-          ],
-          "out_of_scope_tables": [],
-          "latency_s": 40.1,
-          "approvals": 1,
-          "items": [
-            {
-              "type": "function_call",
-              "call_id": "call_1",
-              "name": "ask_fallback_agent",
-              "arguments": "{\"input\": \"What did we pay in licence fees for Dungeon Cafe, by territory?\"}"
-            },
-            {
-              "type": "function_call_output",
-              "call_id": "call_1",
-              "output": "fallback_agent returned the result.\n```sql\nSELECT l.territory_code, SUM(l.fee_usd) AS fees_usd FROM serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement l JOIN serverless_lakebase_praneeth_catalog.hoshi_content.title t ON l.title_id = t.title_id WHERE t.title_name = 'Dungeon Cafe' GROUP BY l.territory_code ORDER BY fees_usd DESC\n```"
-            },
-            {
-              "type": "message",
-              "role": "assistant",
-              "content": [
-                {
-                  "type": "output_text",
-                  "text": "We paid 2,450,000 US dollars for Japan, 1,980,000 for the United States and 640,000 for Brazil."
-                }
-              ]
-            }
-          ]
+       ]
+      },
+      {
+       "type": "mcp_approval_request",
+       "id": "appr_1",
+       "arguments": "{\"question\": \"how many campaigns are live right now, by objective\"}",
+       "name": "ask_fallback_agent",
+       "server_label": "hoshi-fallback-agent"
+      },
+      {
+       "type": "mcp_approval_response",
+       "approval_request_id": "appr_1",
+       "approve": true
+      },
+      {
+       "type": "function_call_output",
+       "call_id": "appr_1",
+       "name": "ask_fallback_agent",
+       "output": "35 campaigns are marked **Live** right now. By objective:\n\n| Objective | Live campaigns |\n|---|---|\n| Awareness | 10 |\n| Conversion | 9 |\n| Brand Launch | 9 |\n| Consideration | 7 |\n| **Total** | **35** |\n\nI counted campaigns with `campaign_status = 'Live'` in `hoshi_sales.campaign`. All 35 have an end date of 2026-11-09, the last day in the data.\n\n---\nSource: tables that are not curated for self-service. Treat the figures as provisional.\nSteps: list_tables; read_table hoshi_sales.campaign; run_sql ok; run_sql ok\nTables used: serverless_lakebase_praneeth_catalog.hoshi_sales.campaign\n```sql\nSELECT c.campaign_type AS objective, COUNT(*) AS live_campaigns\nFROM serverless_lakebase_praneeth_catalog.hoshi_sales.campaign c\nWHERE c.campaign_status = 'Live'\nGROUP BY c.campaign_type ORDER BY live_campaigns DESC\nLIMIT 1000\n```\nQueries ran as: the calling user\nAgent tokens: 9,412"
+      },
+      {
+       "type": "message",
+       "id": "m",
+       "role": "assistant",
+       "content": [
+        {
+         "type": "output_text",
+         "text": "**35 campaigns** are marked as live right now, broken down by objective:\n\n| Objective | Live campaigns |\n|---|---|\n| Awareness | 10 |\n| Conversion | 9 |\n| Brand Launch | 9 |\n| Consideration | 7 |\n\nAll 35 have an end date of 2026-11-09 (yesterday), so they appear to have finished but have not yet been moved to Completed.\n\nThese figures come from tables that are not curated for self-service, so treat them as provisional."
         }
+       ]
       }
+     ]
     }
-  ]
+   }
+  },
+  {
+   "keywords": [
+    "promo"
+   ],
+   "replies": {
+    "genie_one": {
+     "answer": "**1,508** paying subscribers are currently on a promotional rate.",
+     "routes": [
+      "genie:subscribers_revenue"
+     ],
+     "sql": [],
+     "tables": [],
+     "out_of_scope_tables": [],
+     "latency_s": 24.5,
+     "approvals": 0,
+     "trace_id": "tr-fixture-promo-g",
+     "supervisor_tokens": 8100,
+     "items": [
+      {
+       "type": "message",
+       "id": "m",
+       "role": "assistant",
+       "content": [
+        {
+         "type": "output_text",
+         "text": "I'll check how many paying subscribers are currently on a promotional rate."
+        }
+       ]
+      },
+      {
+       "type": "function_call",
+       "call_id": "call_p",
+       "name": "subscribers_revenue",
+       "arguments": "{\"genie_query\": \"how many of our paying subs are sitting on a promo rate right now?\"}"
+      },
+      {
+       "type": "message",
+       "id": "m",
+       "role": "assistant",
+       "content": [
+        {
+         "type": "output_text",
+         "text": "<name>subscribers_revenue</name>"
+        }
+       ]
+      },
+      {
+       "type": "message",
+       "id": "m",
+       "role": "assistant",
+       "content": [
+        {
+         "type": "output_text",
+         "text": "||paying_subscribers_on_promo_rate|\n|-|-|\n|0|1508|"
+        }
+       ],
+       "call_id": "call_p"
+      },
+      {
+       "type": "message",
+       "id": "m",
+       "role": "assistant",
+       "content": [
+        {
+         "type": "output_text",
+         "text": "<name>hoshi-supervisor-genie-one</name>"
+        }
+       ]
+      },
+      {
+       "type": "message",
+       "id": "m",
+       "role": "assistant",
+       "content": [
+        {
+         "type": "output_text",
+         "text": "**1,508** paying subscribers are currently on a promotional rate."
+        }
+       ]
+      }
+     ]
+    },
+    "custom_agent": {
+     "answer": "**1,508** paying subscribers are currently on a promotional rate.",
+     "routes": [
+      "genie:subscribers_revenue"
+     ],
+     "sql": [],
+     "tables": [],
+     "out_of_scope_tables": [],
+     "latency_s": 22.9,
+     "approvals": 0,
+     "trace_id": "tr-fixture-promo-c",
+     "supervisor_tokens": 7950,
+     "items": [
+      {
+       "type": "message",
+       "id": "m",
+       "role": "assistant",
+       "content": [
+        {
+         "type": "output_text",
+         "text": "I'll check how many paying subscribers are currently on a promotional rate."
+        }
+       ]
+      },
+      {
+       "type": "function_call",
+       "call_id": "call_p",
+       "name": "subscribers_revenue",
+       "arguments": "{\"genie_query\": \"how many of our paying subs are sitting on a promo rate right now?\"}"
+      },
+      {
+       "type": "message",
+       "id": "m",
+       "role": "assistant",
+       "content": [
+        {
+         "type": "output_text",
+         "text": "<name>subscribers_revenue</name>"
+        }
+       ]
+      },
+      {
+       "type": "message",
+       "id": "m",
+       "role": "assistant",
+       "content": [
+        {
+         "type": "output_text",
+         "text": "||paying_subscribers_on_promo_rate|\n|-|-|\n|0|1508|"
+        }
+       ],
+       "call_id": "call_p"
+      },
+      {
+       "type": "message",
+       "id": "m",
+       "role": "assistant",
+       "content": [
+        {
+         "type": "output_text",
+         "text": "<name>hoshi-supervisor-custom-agent</name>"
+        }
+       ]
+      },
+      {
+       "type": "message",
+       "id": "m",
+       "role": "assistant",
+       "content": [
+        {
+         "type": "output_text",
+         "text": "**1,508** paying subscribers are currently on a promotional rate."
+        }
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "keywords": [
+    "subscriber",
+    "paying",
+    "plan"
+   ],
+   "replies": {
+    "genie_one": {
+     "answer": "We have 862,441 paying subscribers. Basic has 418,220, Standard has 302,914 and Premium has 141,307.",
+     "routes": [
+      "genie:subscribers_revenue"
+     ],
+     "sql": [
+      "SELECT plan_code, COUNT(*) AS paying_subscribers FROM serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber_account WHERE status = 'active' GROUP BY plan_code ORDER BY plan_code"
+     ],
+     "tables": [
+      "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber_account"
+     ],
+     "out_of_scope_tables": [],
+     "latency_s": 25.9,
+     "approvals": 0,
+     "items": [
+      {
+       "type": "function_call",
+       "call_id": "call_1",
+       "name": "genie_subscribers_revenue",
+       "arguments": "{\"input\": \"How many paying subscribers do we have right now, split by plan?\"}"
+      },
+      {
+       "type": "function_call_output",
+       "call_id": "call_1",
+       "output": "genie:subscribers_revenue returned the result.\n```sql\nSELECT plan_code, COUNT(*) AS paying_subscribers FROM serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber_account WHERE status = 'active' GROUP BY plan_code ORDER BY plan_code\n```"
+      },
+      {
+       "type": "message",
+       "role": "assistant",
+       "content": [
+        {
+         "type": "output_text",
+         "text": "We have 862,441 paying subscribers. Basic has 418,220, Standard has 302,914 and Premium has 141,307."
+        }
+       ]
+      }
+     ]
+    },
+    "custom_agent": {
+     "answer": "There are 862,441 paying subscribers: 418,220 on Basic, 302,914 on Standard and 141,307 on Premium.",
+     "routes": [
+      "genie:subscribers_revenue"
+     ],
+     "sql": [
+      "SELECT plan_code, COUNT(*) AS paying_subscribers FROM serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber_account WHERE status = 'active' GROUP BY plan_code ORDER BY plan_code"
+     ],
+     "tables": [
+      "serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber_account"
+     ],
+     "out_of_scope_tables": [],
+     "latency_s": 34.7,
+     "approvals": 0,
+     "items": [
+      {
+       "type": "function_call",
+       "call_id": "call_1",
+       "name": "genie_subscribers_revenue",
+       "arguments": "{\"input\": \"How many paying subscribers do we have right now, split by plan?\"}"
+      },
+      {
+       "type": "function_call_output",
+       "call_id": "call_1",
+       "output": "genie:subscribers_revenue returned the result.\n```sql\nSELECT plan_code, COUNT(*) AS paying_subscribers FROM serverless_lakebase_praneeth_catalog.hoshi_subscriber.subscriber_account WHERE status = 'active' GROUP BY plan_code ORDER BY plan_code\n```"
+      },
+      {
+       "type": "message",
+       "role": "assistant",
+       "content": [
+        {
+         "type": "output_text",
+         "text": "There are 862,441 paying subscribers: 418,220 on Basic, 302,914 on Standard and 141,307 on Premium."
+        }
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "keywords": [
+    "watch",
+    "title"
+   ],
+   "replies": {
+    "genie_one": {
+     "answer": "The top five titles last week were Dungeon Cafe (318,400 hours), Moonlit Relay (291,050), Paper Lantern Hero (260,877), Kiyoshi Inn (214,503) and Glass Sakura (199,760).",
+     "routes": [
+      "genie:content_viewing"
+     ],
+     "sql": [
+      "SELECT t.title_name, ROUND(SUM(v.watch_seconds) / 3600, 0) AS watch_hours FROM serverless_lakebase_praneeth_catalog.hoshi_distribution.viewing_session v JOIN serverless_lakebase_praneeth_catalog.hoshi_content.title t ON v.title_id = t.title_id WHERE v.session_date >= '2026-11-02' AND v.session_date < '2026-11-09' GROUP BY t.title_name ORDER BY watch_hours DESC LIMIT 5"
+     ],
+     "tables": [
+      "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+      "serverless_lakebase_praneeth_catalog.hoshi_distribution.viewing_session"
+     ],
+     "out_of_scope_tables": [],
+     "latency_s": 29.4,
+     "approvals": 0,
+     "items": [
+      {
+       "type": "function_call",
+       "call_id": "call_1",
+       "name": "genie_content_viewing",
+       "arguments": "{\"input\": \"Which five titles had the most watch hours last week?\"}"
+      },
+      {
+       "type": "function_call_output",
+       "call_id": "call_1",
+       "output": "genie:content_viewing returned the result.\n```sql\nSELECT t.title_name, ROUND(SUM(v.watch_seconds) / 3600, 0) AS watch_hours FROM serverless_lakebase_praneeth_catalog.hoshi_distribution.viewing_session v JOIN serverless_lakebase_praneeth_catalog.hoshi_content.title t ON v.title_id = t.title_id WHERE v.session_date >= '2026-11-02' AND v.session_date < '2026-11-09' GROUP BY t.title_name ORDER BY watch_hours DESC LIMIT 5\n```"
+      },
+      {
+       "type": "message",
+       "role": "assistant",
+       "content": [
+        {
+         "type": "output_text",
+         "text": "The top five titles last week were Dungeon Cafe (318,400 hours), Moonlit Relay (291,050), Paper Lantern Hero (260,877), Kiyoshi Inn (214,503) and Glass Sakura (199,760)."
+        }
+       ]
+      }
+     ]
+    },
+    "custom_agent": {
+     "answer": "The top five titles last week were Dungeon Cafe (318,400 hours), Moonlit Relay (291,050), Paper Lantern Hero (260,877), Kiyoshi Inn (214,503) and Glass Sakura (199,760).",
+     "routes": [
+      "genie:content_viewing"
+     ],
+     "sql": [
+      "SELECT t.title_name, ROUND(SUM(v.watch_seconds) / 3600, 0) AS watch_hours FROM serverless_lakebase_praneeth_catalog.hoshi_distribution.viewing_session v JOIN serverless_lakebase_praneeth_catalog.hoshi_content.title t ON v.title_id = t.title_id WHERE v.session_date >= '2026-11-02' AND v.session_date < '2026-11-09' GROUP BY t.title_name ORDER BY watch_hours DESC LIMIT 5"
+     ],
+     "tables": [
+      "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+      "serverless_lakebase_praneeth_catalog.hoshi_distribution.viewing_session"
+     ],
+     "out_of_scope_tables": [],
+     "latency_s": 35.4,
+     "approvals": 0,
+     "items": [
+      {
+       "type": "function_call",
+       "call_id": "call_1",
+       "name": "genie_content_viewing",
+       "arguments": "{\"input\": \"Which five titles had the most watch hours last week?\"}"
+      },
+      {
+       "type": "function_call_output",
+       "call_id": "call_1",
+       "output": "genie:content_viewing returned the result.\n```sql\nSELECT t.title_name, ROUND(SUM(v.watch_seconds) / 3600, 0) AS watch_hours FROM serverless_lakebase_praneeth_catalog.hoshi_distribution.viewing_session v JOIN serverless_lakebase_praneeth_catalog.hoshi_content.title t ON v.title_id = t.title_id WHERE v.session_date >= '2026-11-02' AND v.session_date < '2026-11-09' GROUP BY t.title_name ORDER BY watch_hours DESC LIMIT 5\n```"
+      },
+      {
+       "type": "message",
+       "role": "assistant",
+       "content": [
+        {
+         "type": "output_text",
+         "text": "The top five titles last week were Dungeon Cafe (318,400 hours), Moonlit Relay (291,050), Paper Lantern Hero (260,877), Kiyoshi Inn (214,503) and Glass Sakura (199,760)."
+        }
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "keywords": [
+    "licen",
+    "fee",
+    "territor"
+   ],
+   "replies": {
+    "genie_one": {
+     "answer": "We paid 2,450,000 US dollars for Japan, 1,980,000 for the United States and 640,000 for Brazil.",
+     "routes": [
+      "genie_one"
+     ],
+     "sql": [
+      "SELECT l.territory_code, SUM(l.fee_usd) AS fees_usd FROM serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement l JOIN serverless_lakebase_praneeth_catalog.hoshi_content.title t ON l.title_id = t.title_id WHERE t.title_name = 'Dungeon Cafe' GROUP BY l.territory_code ORDER BY fees_usd DESC"
+     ],
+     "tables": [
+      "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+      "serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement"
+     ],
+     "out_of_scope_tables": [],
+     "latency_s": 22.4,
+     "approvals": 0,
+     "items": [
+      {
+       "type": "function_call",
+       "call_id": "call_1",
+       "name": "genie_one_genie_ask",
+       "arguments": "{\"input\": \"What did we pay in licence fees for Dungeon Cafe, by territory?\"}"
+      },
+      {
+       "type": "function_call_output",
+       "call_id": "call_1",
+       "output": "genie_one returned the result.\n```sql\nSELECT l.territory_code, SUM(l.fee_usd) AS fees_usd FROM serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement l JOIN serverless_lakebase_praneeth_catalog.hoshi_content.title t ON l.title_id = t.title_id WHERE t.title_name = 'Dungeon Cafe' GROUP BY l.territory_code ORDER BY fees_usd DESC\n```"
+      },
+      {
+       "type": "message",
+       "role": "assistant",
+       "content": [
+        {
+         "type": "output_text",
+         "text": "We paid 2,450,000 US dollars for Japan, 1,980,000 for the United States and 640,000 for Brazil."
+        }
+       ]
+      }
+     ]
+    },
+    "custom_agent": {
+     "answer": "We paid 2,450,000 US dollars for Japan, 1,980,000 for the United States and 640,000 for Brazil.",
+     "routes": [
+      "fallback_agent"
+     ],
+     "sql": [
+      "SELECT l.territory_code, SUM(l.fee_usd) AS fees_usd FROM serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement l JOIN serverless_lakebase_praneeth_catalog.hoshi_content.title t ON l.title_id = t.title_id WHERE t.title_name = 'Dungeon Cafe' GROUP BY l.territory_code ORDER BY fees_usd DESC"
+     ],
+     "tables": [
+      "serverless_lakebase_praneeth_catalog.hoshi_content.title",
+      "serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement"
+     ],
+     "out_of_scope_tables": [],
+     "latency_s": 40.1,
+     "approvals": 1,
+     "items": [
+      {
+       "type": "function_call",
+       "call_id": "call_1",
+       "name": "ask_fallback_agent",
+       "arguments": "{\"input\": \"What did we pay in licence fees for Dungeon Cafe, by territory?\"}"
+      },
+      {
+       "type": "function_call_output",
+       "call_id": "call_1",
+       "output": "fallback_agent returned the result.\n```sql\nSELECT l.territory_code, SUM(l.fee_usd) AS fees_usd FROM serverless_lakebase_praneeth_catalog.hoshi_rights.license_agreement l JOIN serverless_lakebase_praneeth_catalog.hoshi_content.title t ON l.title_id = t.title_id WHERE t.title_name = 'Dungeon Cafe' GROUP BY l.territory_code ORDER BY fees_usd DESC\n```"
+      },
+      {
+       "type": "message",
+       "role": "assistant",
+       "content": [
+        {
+         "type": "output_text",
+         "text": "We paid 2,450,000 US dollars for Japan, 1,980,000 for the United States and 640,000 for Brazil."
+        }
+       ]
+      }
+     ]
+    }
+   }
+  }
+ ]
 }

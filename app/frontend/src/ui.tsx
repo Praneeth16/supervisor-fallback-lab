@@ -1,10 +1,11 @@
 import { Alert, AlertDescription, AlertTitle, Badge, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, Skeleton } from "@databricks/appkit-ui/react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { Arm, TranscriptItem } from "./api";
 import type { Loadable } from "./hooks";
 import { routeLabel, tableName } from "./format";
 
-export const ARM_SHORT: Record<Arm, string> = { genie_one: "Supervisor A", custom_agent: "Supervisor B" };
+export const ARM_SHORT: Record<Arm, string> = { genie_one: "Genie One fallback", custom_agent: "Custom agent fallback" };
 export const ARM_FALLBACK: Record<Arm, string> = {
   genie_one: "Fallback: Genie One",
   custom_agent: "Fallback: custom agent",
@@ -170,7 +171,7 @@ export function Answer({ text }: { text: string }) {
   if (!text.trim()) return <p className="muted">No answer text was returned.</p>;
   return (
     <div className="answer">
-      <ReactMarkdown>{text}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
     </div>
   );
 }

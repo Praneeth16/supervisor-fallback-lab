@@ -9,6 +9,7 @@ and the tokens the supervisor's own model used.
 
 import json
 import time
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 
 import requests
@@ -102,3 +103,85 @@ def ask(
         turn.error = str(e) or type(e).__name__
     turn.latency_s = round(time.monotonic() - started, 2)
     return turn
+
+
+def _stream_once(w: WorkspaceClient, endpoint: str, items: list[dict], timeout_s: int) -> Iterator[dict]:
+    """One streamed call. Yields the events of the Responses API event stream as dicts."""
+    response = requests.post(
+        f"{w.config.host}/serving-endpoints/{endpoint}/invocations",
+        headers={**w.config.authenticate(), "Content-Type": "application/json", "Accept": "text/event-stream"},
+        json={"input": items, "stream": True, "databricks_options": {"return_trace": True}},
+        stream=True,
+        timeout=(15, timeout_s),
+    )
+    if response.status_code != 200:
+        raise RuntimeError(f"HTTP {response.status_code}: {response.text[:500]}")
+    response.encoding = "utf-8"
+    with response:
+        for line in response.iter_lines(decode_unicode=True):
+            if not line or not line.startswith("data:"):
+                continue
+            data = line[5:].strip()
+            if data == "[DONE]":
+                return
+            try:
+                event = json.loads(data)
+            except json.JSONDecodeError:
+                continue
+            if "type" not in event and (event.get("message") or event.get("error")):
+                raise RuntimeError(str(event.get("message") or event.get("error")))
+            if event.get("type") == "error":
+                raise RuntimeError(str(event.get("message") or event.get("error") or event))
+            yield event
+
+
+def ask_stream(
+    w: WorkspaceClient,
+    endpoint: str,
+    history: list[dict],
+    timeout_s: int = 600,
+    approve_tools: tuple[str, ...] = APPROVE_TOOLS,
+) -> Iterator[tuple[str, object]]:
+    """The streaming form of `ask`. Yields pairs while the supervisor works:
+
+      ("delta", text)     a piece of the message the supervisor is writing
+      ("item", item)      a finished output item: message, tool call, tool result, approval request
+      ("approval", item)  the approval answer this client sent for an approval request
+
+    and ends with ("turn", Turn), which holds the same fields `ask` returns.
+    """
+    turn = Turn()
+    started = time.monotonic()
+    try:
+        for _ in range(MAX_ROUNDS):
+            pending = []
+            for event in _stream_once(w, endpoint, list(history) + turn.items, timeout_s):
+                kind = event.get("type")
+                if kind == "response.output_text.delta":
+                    if event.get("delta"):
+                        yield "delta", event["delta"]
+                elif kind == "response.output_item.done" and event.get("item"):
+                    item = event["item"]
+                    turn.items.append(item)
+                    if item.get("type") == "mcp_approval_request":
+                        pending.append(item)
+                    yield "item", item
+                elif kind == "response.completed":
+                    _record_trace(turn, event)
+            if not pending:
+                break
+            for request in pending:
+                approved = request.get("name") in approve_tools
+                answer = {"type": "mcp_approval_response", "approval_request_id": request["id"], "approve": approved}
+                if approved:
+                    turn.approvals += 1
+                else:
+                    turn.declined.append(str(request.get("name")))
+                turn.items.append(answer)
+                yield "approval", {**answer, "name": request.get("name")}
+        else:
+            turn.error = f"No final answer after {MAX_ROUNDS} approval rounds."
+    except (requests.RequestException, RuntimeError, KeyError) as e:
+        turn.error = str(e) or type(e).__name__
+    turn.latency_s = round(time.monotonic() - started, 2)
+    yield "turn", turn

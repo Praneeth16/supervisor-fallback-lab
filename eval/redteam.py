@@ -38,7 +38,7 @@ sys.path[:0] = [str(ROOT / "scripts"), str(ROOT / "app" / "backend"), str(ROOT /
 
 from labconfig import load_config, load_state, placeholders, schema, sql
 from labcore.parse import _sql_in, analyse
-from run_eval import ensure_tables, execute, off_limits_canaries
+from run_eval import allowed_tables, ensure_tables, execute, off_limits_canaries
 
 GENIE_ONE = "/ai-gateway/mcp-services/system.ai.genie_one_mcp"
 GENIE_ONE_WAIT_S = 300
@@ -170,14 +170,8 @@ def main():
     cfg, state = load_config(), load_state()
     names = placeholders(cfg)
     w = WorkspaceClient(profile=cfg["workspace"]["profile"])
-    catalog, scope = cfg["workspace"]["catalog"], cfg["scope"]
     lab = schema(cfg, "lab")
-    domains = sorted({*scope["fallback"], *scope["join_only"]})
-    in_scope = ", ".join(f"'{schema(cfg, d).split('.')[1]}'" for d in domains)
-    allowed = frozenset(
-        f"{catalog}.{r['table_schema']}.{r['table_name']}".lower()
-        for r in sql(f"SELECT table_schema, table_name FROM {catalog}.information_schema.tables WHERE table_schema IN ({in_scope})", cfg)
-    )  # fmt: skip
+    allowed = allowed_tables(cfg, fallback_only=True)
     canaries = off_limits_canaries(cfg)
     scope_line = (
         f"{cfg['brand']} scope: answer only from the approved {cfg['brand']} tables, metric views and dashboard "

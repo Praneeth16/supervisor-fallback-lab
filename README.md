@@ -31,8 +31,10 @@ Databricks docs. Read [Limits](#limits) before you rely on any number.
 - [Set it up in your workspace](#set-it-up-in-your-workspace)
 - [Run the experiment](#run-the-experiment)
 - [Look at the results](#look-at-the-results)
+- [The lab UI](#the-lab-ui)
 - [Change the experiment](#change-the-experiment)
 - [Use your own data](#use-your-own-data)
+- [Questions people ask](#questions-people-ask)
 - [Remove everything](#remove-everything)
 - [If something goes wrong](#if-something-goes-wrong)
 - [Limits](#limits)
@@ -223,8 +225,8 @@ make app
 ```
 
 This installs the frontend packages from the public npm registry, builds the UI and deploys it. The
-command prints the URL of the lab UI. Open it and ask both supervisors a question on the Ask page to
-check that everything is connected.
+command prints the URL of the lab UI. It also creates the tables that keep chats and ratings. Open the
+UI, pick Compare both, and ask a question to check that everything is connected.
 
 ### What each step creates
 
@@ -238,7 +240,7 @@ check that everything is connected.
 | `make scope` | A Genie One skill, and one marked section in the shared workspace instructions file | Yes. The file is backed up first |
 | `make agent` | The custom agent app, and read grants for its service principal on the in-scope schemas | Yes |
 | `make supervisors` | Two Supervisor Agents and their serving endpoints | Yes |
-| `make app` | The lab UI app, and read grants on the lab schema | Yes |
+| `make app` | The lab UI app and read grants on the lab schema. Three chat tables and the view `fallback_demand` in the lab schema, writable by the app. Edit rights for the app on the two supervisor experiments, so ratings can be added to traces | Yes |
 
 The ids of what was created are kept in `state.json` on your machine.
 
@@ -270,6 +272,9 @@ make report
 | `make gateway` | Copies the Unity Gateway usage of the run into the lab schema | A minute |
 | `make report` | Writes the numbers of all runs into `docs/RESULTS.md` | A minute |
 
+To add questions of your own with a reference answer, see [Use your own data](#use-your-own-data)
+and `make gold` there.
+
 There are three question sets:
 
 | File | Turns | Use |
@@ -295,18 +300,65 @@ the tables still describes the reference run until you rewrite it.
 
 ## Look at the results
 
-- **The UI.** The Benchmark page shows scores for each supervisor, by category and by question, with
-  the judges' reasons and every grading of a run. The Governance page shows the scope, tables touched
-  outside it, the direct test, what query history says really ran, and Unity Gateway usage.
+- **The UI.** Under Benchmark, the Results page shows scores for each supervisor, by category and by
+  question, with the judges' reasons and every grading of a run. Questions and ground truth lists
+  every question with its reference SQL and the result of that SQL. Scope checks shows the scope,
+  tables touched outside it, the direct test, what query history says really ran, and Unity Gateway
+  usage. The next section describes the rest of the UI.
 - **`docs/RESULTS.md`.** `make report` rewrites the tables between the two marker lines and keeps
   the text around them.
 - **`eval/results/<label>/`.** What each supervisor said (`*.answers.json`) and every grading of it
   (`*.grading-<n>.json`).
 - **MLflow.** One run for each grading, with the judges' feedback on every question.
 
-![Governance page: the direct test and what query history shows](app/screenshots/11-governance-v3-hard.png)
+![Scope checks: the direct test and what query history shows](app/screenshots/11-governance-v3-hard.png)
 
-![Benchmark page: every grading of a run is kept](app/screenshots/12-benchmark-holdout-grading-history.png)
+![Results: every grading of a run is kept](app/screenshots/12-benchmark-holdout-grading-history.png)
+
+![Questions and ground truth: each question with its reference SQL and result](app/screenshots/24-questions-ground-truth.png)
+
+## The lab UI
+
+The UI is a chat, plus the pages that show how the two setups do. It has three parts.
+
+**Chat.** A new chat starts with one choice: who answers when no curated Genie Agent covers the
+question. Genie One, the custom agent, or both side by side. The answer is streamed. While it is
+made, the page shows each step as it happens: what the supervisor decided, which agent it asked,
+what Genie One reported it was doing, and which tools the custom agent called. Under the answer are
+the agents used, the time taken, the SQL, the tables (a table outside the scope is marked red), a
+link to the MLflow trace, and thumbs up and down. A thumbs down asks for a reason. In compare mode a
+bar under each pair of answers asks which one was better. Chats are kept for each person and listed
+in the side panel.
+
+![Chat in compare mode, with the steps of both supervisors](app/screenshots/21-chat-compare.png)
+
+**Monitor.** This is about live use.
+
+- *Activity and traces* lists every question anyone asked, with the assistant, the agent that
+  answered, the time, the rating and a link to the trace.
+- *Feedback* shows ratings for each assistant and each person, the reasons given with a thumbs down,
+  and the votes from compare mode. Each rating is also added to the supervisor's MLflow trace as a
+  human assessment, so it sits next to the steps of that answer.
+- *Fallback demand* shows which tables the fallback is asked about. A table that enough people keep
+  asking about is flagged as ready for its own curated Genie Agent. The same numbers are in the view
+  `<prefix>lab.fallback_demand`. To be told when a table crosses the line, put a Databricks SQL
+  alert on `SELECT * FROM <catalog>.<prefix>lab.fallback_demand WHERE candidate`. The thresholds are
+  five questions from two people, and can be changed under `ui.fallback_demand` in `lab.yaml`.
+
+![Fallback demand: tables the fallback is asked about](app/screenshots/23-fallback-demand.png)
+
+**Benchmark.** This is the fixed question set with reference answers, described above. It is kept
+apart from live feedback on purpose. Feedback says what people thought of an answer. The benchmark
+says whether an answer agrees with a result a person has checked.
+
+Chats, ratings and votes are stored in three tables in the lab schema: `chat_turns`, `chat_feedback`
+and `chat_preferences`. Ratings and votes are only ever added. The newest row of a person counts, so
+a changed rating keeps its history. The person's identity comes from the headers Databricks Apps adds
+to each request.
+
+To work on the UI without a workspace, run the backend with `LAB_FIXTURES=1` in `app/backend`
+(`uv run start-app`) after `npm run build` in `app/frontend`. It then serves sample data and replays
+saved answers step by step.
 
 ## Change the experiment
 
@@ -317,6 +369,8 @@ Change one thing, publish it to the workspace, and run the benchmark again under
 | Routing rules and tool descriptions | `supervisors/instructions_*.md`, `supervisors/create.py` | `make supervisors` |
 | What Genie One is told about the scope | `lab.yaml` (scope lists), `genie_one_scope/publish.py` | `make scope` |
 | The custom agent's rules or guard | `custom_agent/agent_server/` | `make agent` |
+| How many steps the custom agent may take for one question (default 20) | `agent.max_steps` in `lab.yaml` | `make agent` |
+| What the custom agent knows about a table beyond Unity Catalog comments | `custom_agent/notes/` | `make agent` |
 | A curated Genie Agent | `genie/*.yaml` | `make agents` |
 | Which schemas are in scope | `lab.yaml` (scope lists) | `make scope agent supervisors` |
 | The judges | `eval/judges.py`, and raise `JUDGES_VERSION` | `make regrade LABEL=<label>` |
@@ -331,14 +385,72 @@ The lab is built around the synthetic Hoshi Stream data, and that is the support
 point it at your own tables you need to replace these parts yourself:
 
 1. Skip `make data`. List your schemas in the `scope` section of `lab.yaml`. Schema names follow
-   `<schema_prefix><domain>`.
+   `<schema_prefix><domain>`. To give the fallback a fixed list of tables instead of whole schemas,
+   for example twenty gold tables out of a larger schema, list them under `scope.only_tables`. Both
+   fallbacks then get exactly that list: the custom agent's allowlist and context folder, and the
+   skill Genie One is given.
 2. Write a spec for each curated Genie Agent in `genie/`, or point `supervisors/create.py` at Genie
    Agents you already have.
-3. Write your own questions with reference SQL in a new file under `eval/`, in the same format as
-   `eval/benchmark_holdout.yaml`. Have someone who has not seen the agents' instructions write them.
-4. Run `make scope agent supervisors`, then the experiment.
+3. Add what Unity Catalog does not say. Put one file for a table in `custom_agent/notes/`, named
+   `<schema>.<table>.md`, with the meaning of category values, exceptions and definitions. Rules that
+   hold for all tables go in `custom_agent/notes/RULES.md`. `make agent` adds them to the generated
+   table descriptions, and they stay when the descriptions are generated again.
+4. Get questions with reference SQL, in the format of `eval/benchmark_holdout.yaml`. There are three
+   ways, and all of them end with a person checking the SQL:
+   - Write them by hand. Have someone who has not seen the agents' instructions do it.
+   - `make gold FROM=my_questions.txt` takes a file with one question on each line. A larger model
+     than the agents use (`models.gold_builder` in `lab.yaml`) reads the table descriptions, writes
+     the reference SQL, and the script runs it. `make gold FROM=context N=20` lets the model draft
+     the questions as well.
+   - `make gold FROM=feedback` starts from chat answers that people gave a thumbs up.
+
+   The drafts land in `eval/drafts/` with `reviewed: false` on every question. The model never sees
+   an agent's answer, so the reference is not copied from what it checks. `make eval` refuses a file
+   while any question is still unreviewed. Read each SQL and its result, fix what is wrong, set
+   `reviewed: true`, and move the file next to the other question sets.
+5. Run `make scope agent supervisors`, then the experiment.
 
 Start with the synthetic data so you know what a working run looks like.
+
+## Questions people ask
+
+**Is the SQL guard a list for each person?** No. It is one list of allowed tables for the agent app,
+checked in code before any statement runs. What a person may read is still decided by Unity Catalog,
+because the agent runs SQL with the caller's own identity. The two limits stack: a statement runs only
+if the table is on the agent's list and the person has access to it. To give groups of people
+different lists, deploy the agent more than once with different `scope` settings.
+
+**Our first users can read every schema. Does scoping still work?** For the custom agent, yes. Its
+list does not depend on what the person can read, and the agent cannot learn about a table that is
+not in its context folder. For Genie One, no hard limit exists today. It is told what to use, and the
+reference run shows that the telling can be talked around. For people with broad access, Unity Catalog
+does not narrow Genie One down either.
+
+**Is the table metadata read on every question?** No. `make agent` reads Unity Catalog once and
+writes one file for each table into the context folder that ships with the app: columns, types,
+comments, keys, row count and the values of low-cardinality text columns. To pick up changed metadata,
+run `make agent` again, by hand or from a scheduled job.
+
+**What about tables with very many columns?** The agent's `read_table` tool takes an optional word
+or pattern and then returns only the matching columns, so a wide table does not fill the model's
+context. `search_tables` finds a column across all tables.
+
+**Can we attach the SQL tool straight to the supervisor instead?** You can, and then the supervisor's
+model has to pick tables and write SQL with nothing but tool descriptions to go on. The lab keeps the
+supervisor for routing only. Choosing tables, reading their descriptions and writing SQL happen inside
+the fallback agent, which has the context for it.
+
+**Do we have to use the OpenAI Agents SDK?** No. The loop is under 300 lines in
+`custom_agent/agent_server/agent.py`. Any framework that can call four tools works. The parts worth
+keeping are the context folder, the guard and the footer built by code.
+
+**Are answers streamed?** The supervisors stream, and the lab UI shows their steps as they arrive.
+The custom agent answers the supervisor in one piece, with a line in its footer that lists the tools
+it called.
+
+**Will this still fit when Genie Agents can route between each other?** The custom agent is an app
+with an MCP endpoint. It does not depend on the Supervisor Agent, so it can be attached to another
+orchestrator.
 
 ## Remove everything
 
@@ -388,6 +500,15 @@ More findings from building the lab are in [docs/SPIKES.md](docs/SPIKES.md) and 
   orchestrator.
 - **The Genie One skill is installed for the person who runs `make scope`.** Other users get the
   workspace instructions only.
+- **The custom agent changed after the reference run.** Its footer now lists the tools it called,
+  `read_table` can filter columns, and reaching the step limit gives a plain message. The numbers in
+  this README were measured before these changes. A check of three requests after the change gave the
+  same behaviour, and the benchmark was not run again.
+- **Table-level scope is new.** `scope.only_tables` was checked for the custom agent's context and
+  allowlist. The matching grants and the Genie One skill were not run end to end with it. The
+  supervisors' instructions still name the fallback's schemas, not single tables.
+- **Chat storage is simple.** The UI writes chats and ratings through a SQL warehouse, which takes a
+  second or two for each answer. That is fine for a lab and too slow for a busy product.
 
 ## What is in the repo
 
@@ -397,13 +518,15 @@ Makefile             the steps, in order
 data_model/          table subset of the industry model, synthetic data job, metric views, dashboard
 genie/               the two Genie Agent specs and the script that creates them through Genie Workbench
 genie_one_scope/     renders and publishes the Genie One skill and workspace instructions (arm A)
-custom_agent/        the fallback agent (arm B): SQL guard, MCP endpoint, bundle
+custom_agent/        the fallback agent (arm B): SQL guard, MCP endpoint, bundle, notes/ for hand-written table notes
 supervisors/         instructions and the script that creates both supervisors
 eval/                three question sets with reference SQL, MLflow judges, scoring, runner,
-                     direct test, query history check, judge check, load test, report
+                     direct test, query history check, judge check, load test, report,
+                     build_benchmark.py for drafting new questions with reference SQL
 eval/results/        answers and gradings of the reference run
-app/                 the lab UI: FastAPI backend, React frontend built with appkit-ui
-scripts/             shared config, grants, tracing setup, overlap check, teardown
+app/                 the lab UI: chat with streamed steps, feedback, monitor and benchmark pages.
+                     FastAPI backend, React frontend built with appkit-ui
+scripts/             shared config, grants, tracing setup, chat tables, overlap check, teardown
 docs/                REPLICATE.md, ARCHITECTURE.md, RESULTS.md, DATA.md, SPIKES.md, CONTRACT.md
 ```
 

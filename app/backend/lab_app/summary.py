@@ -321,6 +321,23 @@ def filter_results(
     return out
 
 
+def question_set(rows: Sequence[dict], arms: Sequence[str]) -> list[dict]:
+    """The questions of a run with their reference answer, one row for each question."""
+    out: dict[str, dict] = {}
+    for row in rows:
+        entry = out.setdefault(
+            row["question_id"],
+            {**{field: row.get(field) for field in QUESTION_FIELDS}, "gold_sql": None, "gold_result": None,
+             "passed": {arm: None for arm in arms}},
+        )  # fmt: skip
+        entry["gold_sql"] = entry["gold_sql"] or row.get("gold_sql")
+        if entry["gold_result"] is None:
+            entry["gold_result"] = row.get("gold_result")
+        if row["arm"] in entry["passed"]:
+            entry["passed"][row["arm"]] = row.get("passed")
+    return sorted(out.values(), key=lambda q: q["question_id"])
+
+
 def question_detail(rows: Sequence[dict], arms: Sequence[str], question_id: str) -> dict | None:
     matching = [r for r in rows if r["question_id"] == question_id]
     if not matching:

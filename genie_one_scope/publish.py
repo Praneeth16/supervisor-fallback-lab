@@ -20,7 +20,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
-from labconfig import api, cli, data_rules, load_config, load_state, save_state, schema, sql
+from labconfig import api, cli, data_rules, load_config, load_state, save_state, schema, sql, tables_in_scope
 
 HERE = Path(__file__).resolve().parent
 SKILL_NAME = "hoshi-data-scope"
@@ -34,10 +34,9 @@ MARK_END = "<!-- hoshi-lab-scope:end -->"
 
 def objects(cfg: dict, domains: list[str]) -> list[dict]:
     catalog = cfg["workspace"]["catalog"]
-    names = ", ".join(f"'{schema(cfg, d).split('.')[1]}'" for d in domains)
     return sql(
         f"SELECT table_schema, table_name, table_type, comment FROM {catalog}.information_schema.tables "
-        f"WHERE table_schema IN ({names}) ORDER BY table_schema, table_name",
+        f"WHERE {tables_in_scope(cfg, domains)} ORDER BY table_schema, table_name",
         cfg,
     )
 

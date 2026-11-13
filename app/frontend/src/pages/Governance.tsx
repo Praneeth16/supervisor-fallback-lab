@@ -241,7 +241,7 @@ export default function GovernancePage() {
         return (
           <div className="stack-lg">
             <section className="page-head">
-              <h2>Governance</h2>
+              <h2>Scope checks</h2>
               <p className="lede">
                 Both supervisors share the same curated agents. The question here is what happens when a question falls
                 through to the fallback, and whether either supervisor reads a table it should not.

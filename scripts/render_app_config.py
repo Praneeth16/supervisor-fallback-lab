@@ -14,10 +14,18 @@ def main():
         "LAB_SCHEMA": lab_schema,
         "SUPERVISOR_A_ENDPOINT": state["supervisors"]["genie_one"]["endpoint"],
         "SUPERVISOR_B_ENDPOINT": state["supervisors"]["custom_agent"]["endpoint"],
+        "SUPERVISOR_A_EXPERIMENT": str(state["supervisors"]["genie_one"].get("experiment_id") or ""),
+        "SUPERVISOR_B_EXPERIMENT": str(state["supervisors"]["custom_agent"].get("experiment_id") or ""),
         "LAB_BRAND": cfg["brand"],
         "LAB_SCOPE_JSON": json.dumps(cfg["scope"]),
         "LAB_FIXTURES": "0",
     }
+    # Optional. How many fallback questions from how many people flag a table for a curated Genie Agent.
+    demand = (cfg.get("ui") or {}).get("fallback_demand") or {}
+    if demand.get("min_questions"):
+        env["LAB_DEMAND_MIN_QUESTIONS"] = str(demand["min_questions"])
+    if demand.get("min_people"):
+        env["LAB_DEMAND_MIN_PEOPLE"] = str(demand["min_people"])
     app = {
         "command": ["uv", "run", "start-app"],
         "env": [{"name": "DATABRICKS_WAREHOUSE_ID", "valueFrom": "sql-warehouse"}]

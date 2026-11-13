@@ -28,3 +28,4 @@ genie_one_scope/workspace_instructions.md
 
 # Resolved against whichever npm registry you use, so it is not shared
 app/frontend/package-lock.json
+eval/drafts/

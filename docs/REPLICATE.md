@@ -117,7 +117,7 @@ On your machine:
 15. **Report.** `make report` writes the numbers of all runs into `docs/RESULTS.md`, between the two marker
     lines. Text outside the markers is kept.
 
-16. **UI.** `make app` builds the frontend, deploys the lab app and grants it read access to the lab schema.
+16. **UI.** `make app` builds the frontend, deploys the lab app and grants it read access to the lab schema. It then runs `scripts/setup_chat.py`, which creates the tables `chat_turns`, `chat_feedback` and `chat_preferences` and the view `fallback_demand`, lets the app write to the three tables, and gives it edit rights on the two supervisor experiments so a rating can be added to a trace.
 
 To compare two versions, change the instructions, the skill, the tool descriptions or the agent rules. Then
 rerun the step that publishes them and run `make eval` with a new label, for example `make eval LABEL=v2 NOTES="what changed"`.
@@ -153,7 +153,7 @@ script has not been run end to end yet.
 | `make agent` | Rewrites the context folder, redeploys the fallback agent app and grants it access | Yes |
 | `make supervisors` | Updates the instructions, tools and examples of both supervisors. They are matched by name. | Yes |
 | `make eval` | Writes a new run under its label | Yes, but use a new label for each run you want to keep |
-| `make app` | Redeploys the lab UI app | Yes |
+| `make app` | Redeploys the lab UI app. Creates the chat tables if they are missing | Yes |
 | `make workbench` | Redeploys the Workbench app and restarts it to apply the scope | Yes |
 | `make teardown` | Removes the Genie One skill and the lab section of the workspace instructions file | Yes |
 | `make teardown-all CONFIRM=1` | Removes what the lab created. See the next section. | No. The objects are gone. |

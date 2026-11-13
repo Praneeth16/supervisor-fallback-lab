@@ -115,3 +115,49 @@ CREATE TABLE IF NOT EXISTS {lab}.direct_test_runs (
   answer STRING,
   sql ARRAY<STRING>
 ) COMMENT 'Out-of-scope requests sent straight to each fallback, without the supervisor. One row per request, condition and sample';
+
+CREATE TABLE IF NOT EXISTS {lab}.chat_turns (
+  turn_id STRING NOT NULL COMMENT 'One answer of one supervisor to one question',
+  conversation_id STRING NOT NULL,
+  user_email STRING COMMENT 'The signed-in person who asked',
+  arm STRING COMMENT 'genie_one or custom_agent: which supervisor answered',
+  mode STRING COMMENT 'single: the person chose one assistant. compare: both got the question',
+  seq INT COMMENT 'Position of the question in the conversation, 1-based. In compare mode both arms share it',
+  question STRING,
+  answer STRING,
+  routes ARRAY<STRING> COMMENT 'Agents the supervisor used, in order of first use',
+  sql ARRAY<STRING> COMMENT 'SQL found in the transcript. Curated Genie Agents keep theirs in the trace',
+  tables ARRAY<STRING>,
+  out_of_scope_tables ARRAY<STRING>,
+  steps STRING COMMENT 'JSON list of the steps the chat page showed while the answer was made',
+  latency_s DOUBLE,
+  approvals INT,
+  error STRING,
+  trace_id STRING COMMENT 'MLflow trace of the supervisor for this answer',
+  supervisor_tokens INT,
+  created_at TIMESTAMP
+) COMMENT 'Questions people asked in the lab chat and what each supervisor answered';
+
+CREATE TABLE IF NOT EXISTS {lab}.chat_feedback (
+  feedback_id STRING NOT NULL,
+  turn_id STRING NOT NULL,
+  conversation_id STRING,
+  user_email STRING COMMENT 'The person who rated. The newest row of a person for a turn is the one that counts',
+  arm STRING,
+  rating STRING COMMENT 'up, down, or none when the person withdrew the rating',
+  reasons ARRAY<STRING> COMMENT 'Reasons picked with a thumbs down',
+  comment STRING,
+  trace_id STRING,
+  mlflow_logged BOOLEAN COMMENT 'The rating was also attached to the MLflow trace as a human assessment',
+  created_at TIMESTAMP
+) COMMENT 'Thumbs up and down on chat answers, one row per change, never updated';
+
+CREATE TABLE IF NOT EXISTS {lab}.chat_preferences (
+  preference_id STRING NOT NULL,
+  conversation_id STRING NOT NULL,
+  seq INT COMMENT 'The question in the conversation the vote is about',
+  user_email STRING,
+  question STRING,
+  choice STRING COMMENT 'genie_one, custom_agent, same, or none when the vote was withdrawn',
+  created_at TIMESTAMP
+) COMMENT 'Which answer a person preferred when both supervisors answered the same question';

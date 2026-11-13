@@ -11,7 +11,7 @@ user token is forwarded, and they stop at the in-scope schemas: nothing on the o
 import json
 import sys
 
-from labconfig import cli, load_config, load_state, save_state, schema, sql
+from labconfig import cli, load_config, load_state, only_tables, save_state, schema, sql, tables_in_scope
 
 APPS = {"agent": "hoshi-fallback-agent", "ui": "hoshi-fallback-lab", "ablation": "hoshi-fallback-agent-noguard"}
 TRACE_TABLES = ("mlflow_experiment_trace_otel_spans", "mlflow_experiment_trace_otel_logs")
@@ -43,8 +43,26 @@ def main():
 
     if which in ("agent", "ablation"):
         # The guard-off build gets no data access of its own. It only runs SQL as the calling user.
-        for domain in sorted({*scope["fallback"], *scope["join_only"]}) if which == "agent" else []:
-            sql(f"GRANT USE SCHEMA, SELECT ON SCHEMA {schema(cfg, domain)} TO `{sp}`", cfg)
+        fallback_domains = sorted({*scope["fallback"], *scope["join_only"]}) if which == "agent" else []
+        if fallback_domains and only_tables(cfg) is not None:
+            # With a table list the app reads the listed tables only, not the whole schema.
+            for domain in fallback_domains:
+                sql(f"GRANT USE SCHEMA ON SCHEMA {schema(cfg, domain)} TO `{sp}`", cfg)
+            listed = sql(
+                f"SELECT table_schema, table_name FROM {catalog}.information_schema.tables "
+                f"WHERE {tables_in_scope(cfg, fallback_domains)}",
+                cfg,
+            )
+            for row in listed:
+                sql(f"GRANT SELECT ON TABLE {catalog}.{row['table_schema']}.{row['table_name']} TO `{sp}`", cfg)
+            print(
+                f"scope.only_tables is set: SELECT granted on {len(listed)} tables. A SELECT grant on a whole "
+                "schema from an earlier run stays until you revoke it: REVOKE SELECT ON SCHEMA <schema> FROM `"
+                f"{sp}`"
+            )
+        else:
+            for domain in fallback_domains:
+                sql(f"GRANT USE SCHEMA, SELECT ON SCHEMA {schema(cfg, domain)} TO `{sp}`", cfg)
         sql(f"GRANT USE SCHEMA ON SCHEMA {lab} TO `{sp}`", cfg)
         for table in TRACE_TABLES:
             sql(f"GRANT MODIFY, SELECT ON TABLE {lab}.{table} TO `{sp}`", cfg)
@@ -53,14 +71,15 @@ def main():
     else:
         # The UI flags tables outside the agreed scope. It cannot list the data schemas itself
         # (it has no access to them), so the in-scope table list is copied into the lab schema.
-        domains = sorted(
-            {*scope["fallback"], *scope["join_only"], *(d for ds in scope["genie_agents"].values() for d in ds)}
+        where = tables_in_scope(
+            cfg,
+            [*scope["fallback"], *scope["join_only"]],
+            always=[d for ds in scope["genie_agents"].values() for d in ds],
         )
-        names = ", ".join(f"'{schema(cfg, d).split('.')[1]}'" for d in domains)
         sql(
             f"""CREATE OR REPLACE TABLE {lab}.scope_tables COMMENT 'Tables the lab agents may use' AS
                 SELECT table_catalog, table_schema, table_name FROM {catalog}.information_schema.tables
-                WHERE table_schema IN ({names})""",
+                WHERE {where}""",
             cfg,
         )
         sql(f"GRANT USE SCHEMA, SELECT ON SCHEMA {lab} TO `{sp}`", cfg)

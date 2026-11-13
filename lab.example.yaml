@@ -14,6 +14,11 @@ models:
   agent: system.ai.claude-sonnet-5-5     # custom agent, called through Unity Gateway
   judge: databricks-gpt-5-5              # a different model family from the agent, on purpose
   second_judge: databricks-gemini-3-8-flash   # a third family, used only to check the first judge
+  gold_builder: databricks-gpt-6-astra   # a larger model that drafts reference SQL for new benchmark questions (make gold)
+
+# Optional settings of the custom agent. Leave the section out to keep the defaults.
+# agent:
+#   max_steps: 20                      # most model turns for one question. Lower answers faster and gives up sooner
 
 data:
   as_of: 2026-11-10                    # "today" for the synthetic data. It runs through the day before
@@ -27,3 +32,17 @@ scope:
   fallback: [rights, sales, partner]      # what the fallback may answer from
   join_only: [subscriber, billing, content, distribution]   # the fallback may join to these
   off_limits: [talent]                    # visible to users, never allowed for agents
+  # Optional. By default every table in the fallback and join_only schemas is in scope. List tables here
+  # to narrow that to these tables only, for example a fixed set of gold tables inside a bigger schema.
+  # Write schema.table or catalog.schema.table. Both fallbacks get the same list. The curated Genie
+  # Agents keep their own tables. After a change run: make scope agent supervisors app
+  # only_tables:
+  #   - hoshi_rights.license_agreement
+  #   - hoshi_rights.territory
+  #   - hoshi_sales.campaign
+
+# Optional settings of the lab UI.
+# ui:
+#   fallback_demand:          # when the Fallback demand page flags a table for a curated Genie Agent
+#     min_questions: 5        # fallback questions that used the table
+#     min_people: 2           # asked by at least this many people

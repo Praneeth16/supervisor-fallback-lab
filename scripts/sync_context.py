@@ -1,8 +1,13 @@
 """Build the fallback agent's context folder from Unity Catalog.
 
-For every table in the agent's scope (lab.yaml: scope.fallback and scope.join_only) this writes one
-markdown file with columns, comments, keys and sample values, plus the allowlist the SQL guard
-enforces. The agent can only see and query what lands in this folder.
+For every table in the agent's scope (lab.yaml: scope.fallback and scope.join_only, narrowed by
+scope.only_tables when that is set) this writes one markdown file with columns, comments, keys and
+sample values, plus the allowlist the SQL guard enforces. The agent can only see and query what
+lands in this folder.
+
+Hand-written notes in custom_agent/notes/ are merged in on every run, so they survive a sync:
+notes/<schema>.<table>.md goes under that table's description, and the lines of notes/RULES.md are
+added to the rules. See custom_agent/notes/README.md.
 """
 
 import json
@@ -10,9 +15,11 @@ import shutil
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 
-from labconfig import ROOT, data_rules, load_config, schema, sql
+from labconfig import ROOT, data_rules, load_config, only_tables, schema, sql, tables_in_scope
 
 CONTEXT = ROOT / "custom_agent" / "context"
+NOTES = ROOT / "custom_agent" / "notes"
+NOTES_HEADING = "## Notes from the data owner"
 MAX_SAMPLE_VALUES = 20
 SCOPE_RULE = (
     'Tables under "Fallback scope" are yours to answer from. Tables under "Join only" belong to a curated '
@@ -26,6 +33,26 @@ def first_sentence(comment: str | None, limit: int = 180) -> str:
     end = text.find(". ")
     text = text[: end + 1] if 0 < end < limit else text[:limit]
     return text.rstrip(".")
+
+
+def table_notes() -> dict[str, str]:
+    """Hand-written notes by lower-case schema.table. README.md and RULES.md are not table notes."""
+    if not NOTES.is_dir():
+        return {}
+    return {
+        path.stem.lower(): path.read_text().strip()
+        for path in sorted(NOTES.glob("*.md"))
+        if path.name.lower() not in ("readme.md", "rules.md") and path.read_text().strip()
+    }
+
+
+def extra_rules() -> list[str]:
+    """The lines of notes/RULES.md, one rule each. Headings and empty lines are skipped."""
+    path = next((p for p in NOTES.glob("*.md") if p.name.lower() == "rules.md"), None) if NOTES.is_dir() else None
+    if path is None:
+        return []
+    lines = (line.strip() for line in path.read_text().splitlines())
+    return [line.lstrip("-* ").strip() for line in lines if line and not line.startswith("#")]
 
 
 def table_doc(cfg: dict, catalog: str, schema_name: str, table: dict, role: str) -> tuple[str, int]:
@@ -108,7 +135,7 @@ def main():
         schema_name = schema(cfg, domain).split(".")[1]
         tables = sql(
             f"SELECT table_name, table_type, comment FROM {catalog}.information_schema.tables "
-            f"WHERE table_schema = '{schema_name}' ORDER BY table_name",
+            f"WHERE {tables_in_scope(cfg, [domain])} ORDER BY table_name",
             cfg,
         )
         todo += [(schema_name, table, role) for table in tables]
@@ -118,9 +145,14 @@ def main():
         doc, rows = table_doc(cfg, catalog, schema_name, table, role)
         return f"{catalog}.{schema_name}.{table['table_name']}", table, role, doc, rows
 
+    notes, used = table_notes(), set()
     allowed, index = [], {"Fallback scope": [], "Join only": []}
     with ThreadPoolExecutor(6) as pool:
         for fq, table, role, doc, rows in pool.map(describe, todo):
+            short = fq.split(".", 1)[1].lower()
+            if short in notes:
+                doc += f"\n{NOTES_HEADING}\n\n{notes[short]}\n"
+                used.add(short)
             (build / "tables" / f"{fq}.md").write_text(doc)
             allowed.append(fq)
             size = "metric view" if table["table_type"] == "METRIC_VIEW" else f"{rows:,} rows"
@@ -129,7 +161,8 @@ def main():
     (build / "INDEX.md").write_text(
         "\n\n".join(f"## {role}\n" + "\n".join(entries) for role, entries in index.items() if entries) + "\n"
     )
-    rules = [SCOPE_RULE, *data_rules(cfg)]
+    owner_rules = extra_rules()
+    rules = [SCOPE_RULE, *data_rules(cfg), *owner_rules]
     (build / "RULES.md").write_text("## Rules for this data\n\n" + "\n".join(f"- {r}" for r in rules) + "\n")
     (build / "allowlist.json").write_text(
         json.dumps({"generated_at": datetime.now(UTC).isoformat(), "tables": sorted(allowed)}, indent=2) + "\n"
@@ -138,6 +171,16 @@ def main():
         shutil.rmtree(CONTEXT)
     build.rename(CONTEXT)
     print(f"{len(allowed)} tables in scope -> {CONTEXT}")
+    print(f"notes: {len(used)} table notes files and {len(owner_rules)} extra rules merged from {NOTES}")
+    for short in sorted(set(notes) - used):
+        print(f"WARNING: {NOTES.name}/{short}.md matches no table in scope and was not used.")
+    listed = only_tables(cfg)
+    if listed is not None:
+        found = {fq.split(".", 1)[1].lower() for fq in allowed}
+        print(f"scope.only_tables is set: {len(found)} of {len(listed)} listed tables found.")
+        for short in sorted(listed - found):
+            print(f"WARNING: scope.only_tables lists {short}, which does not exist in the catalog.")
 
 
-main()
+if __name__ == "__main__":
+    main()

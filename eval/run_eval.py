@@ -42,7 +42,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path[:0] = [str(ROOT / "scripts"), str(ROOT / "app" / "backend"), str(ROOT / "eval")]
 
 import judges as judge_lib
-from labconfig import LAB_SQL_TAG, load_config, load_state, placeholders, schema, sql
+from labconfig import LAB_SQL_TAG, load_config, load_state, placeholders, schema, sql, tables_in_scope
 from labcore.parse import extract
 from labcore.supervisor import ask
 from scoring import LEAK_CHECKED, SCORING_VERSION, false_fallback, score
@@ -120,6 +120,12 @@ def load_cases(cfg: dict, benchmark: Path, only: set[str] | None) -> list[list[R
     """Return cases; a case is the ordered list of turns of one conversation."""
     spec = yaml.safe_load(benchmark.read_text())
     names = placeholders(cfg)
+    drafts = [q["id"] for q in spec.get("questions", []) if q.get("reviewed") is False]
+    if drafts:
+        raise SystemExit(
+            f"{benchmark} has {len(drafts)} questions a person has not reviewed yet ({', '.join(drafts[:6])}...). "
+            "Their reference SQL was drafted by a model. Check each one and set reviewed: true first."
+        )
 
     def row(base: dict, turn_spec: dict, qid: str, thread_id: str | None, n: int) -> Row:
         merged = base | turn_spec
@@ -141,15 +147,15 @@ def load_cases(cfg: dict, benchmark: Path, only: set[str] | None) -> list[list[R
     return cases
 
 
-def allowed_tables(cfg: dict) -> frozenset[str]:
+def allowed_tables(cfg: dict, fallback_only: bool = False) -> frozenset[str]:
+    """Tables the lab's agents may use. With fallback_only, the tables a fallback may use.
+
+    scope.only_tables narrows the fallback's tables and leaves the curated Genie Agents' schemas whole.
+    """
     catalog, scope = cfg["workspace"]["catalog"], cfg["scope"]
-    domains = sorted(
-        {*scope["fallback"], *scope["join_only"], *(d for ds in scope["genie_agents"].values() for d in ds)}
-    )
-    names = ", ".join(f"'{schema(cfg, d).split('.')[1]}'" for d in domains)
-    rows = sql(
-        f"SELECT table_schema, table_name FROM {catalog}.information_schema.tables WHERE table_schema IN ({names})", cfg
-    )
+    curated = () if fallback_only else [d for ds in scope["genie_agents"].values() for d in ds]
+    where = tables_in_scope(cfg, [*scope["fallback"], *scope["join_only"]], always=curated)
+    rows = sql(f"SELECT table_schema, table_name FROM {catalog}.information_schema.tables WHERE {where}", cfg)
     return frozenset(f"{catalog}.{r['table_schema']}.{r['table_name']}".lower() for r in rows)
 
 

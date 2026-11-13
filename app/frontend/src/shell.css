@@ -1,0 +1,456 @@
+/* App frame: a side panel with navigation and the person's chats, and the page beside it.
+   Radius rule: 6px for small controls, 10px for inputs and rows, 16px for the composer and panels,
+   full pills for chips. */
+
+.shell {
+  display: grid;
+  grid-template-columns: 272px minmax(0, 1fr);
+  height: 100dvh;
+}
+
+.side {
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.side-top {
+  padding: 1rem 0.9rem 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0 0.25rem;
+  text-decoration: none;
+}
+
+.brand-mark {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--brand);
+  color: var(--foreground);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.brand-text strong {
+  font-weight: 900;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+}
+
+.brand-text span {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.new-chat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  height: 38px;
+  border-radius: var(--r-md);
+  border: 0;
+  background: var(--brand);
+  color: var(--foreground);
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 160ms var(--ease-out), transform 160ms var(--ease-out);
+}
+
+.new-chat:hover {
+  background: var(--brand-press);
+}
+
+.new-chat:active {
+  transform: scale(0.985);
+}
+
+.side-nav {
+  list-style: none;
+  margin: 0;
+  padding: 0 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.side-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-faint);
+  padding: 0.9rem 0.85rem 0.3rem;
+}
+
+.side-link {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.42rem 0.6rem;
+  border-radius: var(--r-md);
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.93rem;
+  transition: background 140ms var(--ease-out), color 140ms var(--ease-out);
+}
+
+.side-link:hover {
+  background: var(--panel-hover);
+  color: var(--foreground);
+}
+
+.side-link.active {
+  background: var(--card);
+  color: var(--foreground);
+  font-weight: 700;
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+.side-link.active svg {
+  color: var(--brand-ink);
+}
+
+.side-chats {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 0.6rem 0.75rem;
+  scrollbar-width: thin;
+}
+
+.chat-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.chat-link {
+  display: block;
+  padding: 0.42rem 0.6rem;
+  border-radius: var(--r-md);
+  text-decoration: none;
+  color: var(--foreground);
+  transition: background 140ms var(--ease-out);
+}
+
+.chat-link:hover {
+  background: var(--panel-hover);
+}
+
+.chat-link.active {
+  background: var(--card);
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+.chat-link-title {
+  display: block;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-link-meta {
+  display: block;
+  font-size: 0.76rem;
+  color: var(--text-faint);
+}
+
+.side-empty {
+  font-size: 0.85rem;
+  color: var(--text-faint);
+  padding: 0.3rem 0.6rem;
+}
+
+.side-user {
+  border-top: 1px solid var(--border);
+  padding: 0.7rem 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--foreground);
+  color: var(--background);
+  display: grid;
+  place-items: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  flex: none;
+}
+
+.side-user-text {
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.side-user-text strong {
+  display: block;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.side-user-text span {
+  font-size: 0.74rem;
+  color: var(--text-faint);
+}
+
+.main {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  position: relative;
+}
+
+.main-chat {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.menu-button {
+  display: none;
+}
+
+.page-head h2 + .lede,
+.page-head h2 + p {
+  margin-top: -0.25rem;
+}
+
+/* Plain data tables on the feedback and demand pages. */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.data-table th {
+  text-align: left;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  padding: 0.45rem 1.5rem 0.45rem 0;
+  border-bottom: 1px solid var(--line-strong);
+  white-space: nowrap;
+}
+
+.data-table td {
+  padding: 0.6rem 1.5rem 0.6rem 0;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.data-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.data-table .right {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.data-table .nowrap {
+  white-space: nowrap;
+}
+
+.bad-text {
+  color: var(--text-bad);
+  font-weight: 700;
+}
+
+.data-table th:last-child,
+.data-table td:last-child {
+  padding-right: 0;
+}
+
+.data-table code {
+  font-size: 0.84rem;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+  background: var(--muted);
+  color: var(--text-secondary);
+}
+
+.pill-brand {
+  background: var(--brand-soft);
+  color: var(--brand-ink);
+}
+
+.pill-good {
+  background: var(--good-soft);
+  color: var(--text-good);
+}
+
+.pill-bad {
+  background: var(--bad-soft);
+  color: var(--text-bad);
+}
+
+.split-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--muted);
+  max-width: 520px;
+}
+
+.split-bar span {
+  display: block;
+  height: 100%;
+}
+
+.fact-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 2.2rem;
+  margin: 0;
+}
+
+.fact-row div {
+  display: flex;
+  flex-direction: column;
+}
+
+.fact-row dt {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.fact-row dd {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+.panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 1.25rem 1.4rem;
+}
+
+.quote {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-top: 0.2rem;
+}
+
+.examples {
+  margin: 0.25rem 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 900px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .side {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(300px, 86vw);
+    z-index: 30;
+    transform: translateX(-102%);
+    transition: transform 220ms var(--ease-out);
+    box-shadow: var(--shadow-raised);
+  }
+  .side.open {
+    transform: none;
+  }
+  .side-scrim {
+    position: fixed;
+    inset: 0;
+    background: rgb(30 32 37 / 0.35);
+    z-index: 20;
+    border: 0;
+  }
+  .menu-button {
+    display: inline-grid;
+    place-items: center;
+    position: fixed;
+    top: 0.6rem;
+    left: 0.6rem;
+    z-index: 10;
+    width: 38px;
+    height: 38px;
+    border-radius: var(--r-md);
+    border: 1px solid var(--border);
+    background: var(--card);
+    cursor: pointer;
+  }
+  .page {
+    padding: 3.6rem 1.1rem 3rem;
+  }
+}
+
+.skeleton-line {
+  height: 0.9rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--muted) 25%, var(--panel-hover) 50%, var(--muted) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+  margin-bottom: 0.7rem;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.plain-list {
+  margin: 0;
+  list-style: disc;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-width: 80ch;
+}
+
+details > summary {
+  cursor: pointer;
+  color: var(--brand-ink);
+  font-weight: 700;
+  font-size: 0.88rem;
+}

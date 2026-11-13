@@ -527,11 +527,11 @@ export function BenchmarkDetailPage() {
           return (
             <>
               <section className="page-head">
-                <p className="eyebrow">
+                <h2>{q.question}</h2>
+                <p className="muted small">
                   {q.question_id} in version {runLabel}
                   {q.thread_id ? `, thread ${q.thread_id} turn ${q.turn}` : ""}
                 </p>
-                <h2>{q.question}</h2>
                 <dl className="run-facts">
                   <div>
                     <dt>Category</dt>

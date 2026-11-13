@@ -13,6 +13,9 @@ variables:
   agent_model:
     description: Unity Gateway model service the agent calls (lab.yaml, models.agent)
     default: system.ai.claude-sonnet-5-5
+  max_steps:
+    description: Most model turns the agent may take for one question (lab.yaml, agent.max_steps)
+    default: "20"
   app_name:
     description: Name of the app
     default: hoshi-fallback-agent
@@ -48,6 +51,8 @@ resources:
             value: ${var.trace_schema}
           - name: AGENT_MODEL
             value: ${var.agent_model}
+          - name: AGENT_MAX_TURNS
+            value: ${var.max_steps}
           - name: AGENT_GUARD
             value: ${var.guard}
           - name: AGENT_REQUIRE_USER_TOKEN

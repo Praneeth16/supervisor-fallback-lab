@@ -29,6 +29,57 @@ def schema(cfg: dict, domain: str) -> str:
     return f"{ws['catalog']}.{ws['schema_prefix']}{domain}"
 
 
+def only_tables(cfg: dict) -> frozenset[str] | None:
+    """scope.only_tables as lower-case schema.table names, or None when the key is not set.
+
+    Entries may be written schema.table or catalog.schema.table. Every entry has to sit in a schema
+    listed under scope.fallback or scope.join_only, because a table anywhere else is never in scope.
+    """
+    listed = cfg["scope"].get("only_tables")
+    if not listed:
+        return None
+    catalog = cfg["workspace"]["catalog"].lower()
+    scope = cfg["scope"]
+    schemas = {schema(cfg, d).split(".")[1].lower() for d in {*scope["fallback"], *scope["join_only"]}}
+    names = set()
+    for entry in listed:
+        parts = str(entry).strip().strip("`").lower().split(".")
+        if len(parts) == 3 and parts[0] == catalog:
+            parts = parts[1:]
+        if len(parts) != 2:
+            raise SystemExit(f"scope.only_tables: write {entry!r} as schema.table or {catalog}.schema.table.")
+        if parts[0] not in schemas:
+            raise SystemExit(
+                f"scope.only_tables: {entry!r} is in schema {parts[0]}, which is not under scope.fallback or scope.join_only."
+            )
+        names.add(".".join(parts))
+    return frozenset(names)
+
+
+def tables_in_scope(cfg: dict, domains, always=()) -> str:
+    """SQL condition on information_schema.tables for the tables of these domains that are in scope.
+
+    Without scope.only_tables this is every table in the schemas of `domains` and `always`. With it,
+    a table of `domains` passes only when it is listed. Tables of the `always` domains pass
+    unfiltered: these are the schemas of the curated Genie Agents, which the list does not narrow.
+    Every script that lists in-scope tables uses this condition, so both fallbacks get the same scope.
+    """
+
+    def schema_list(names) -> str:
+        return ", ".join(f"'{schema(cfg, d).split('.')[1]}'" for d in sorted(set(names)))
+
+    listed = only_tables(cfg)
+    if listed is None:
+        return f"table_schema IN ({schema_list([*domains, *always])})"
+    quoted = ", ".join(f"'{name}'" for name in sorted(listed))
+    narrowed = (
+        f"table_schema IN ({schema_list(domains)}) AND lower(concat(table_schema, '.', table_name)) IN ({quoted})"
+    )
+    if not always:
+        return narrowed
+    return f"(table_schema IN ({schema_list(always)}) OR ({narrowed}))"
+
+
 DOMAINS = ["subscriber", "billing", "content", "distribution", "rights", "sales", "partner", "talent", "lab"]
 
 
